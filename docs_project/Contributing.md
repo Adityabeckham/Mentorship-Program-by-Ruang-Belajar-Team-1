@@ -109,54 +109,59 @@ git push origin nama-branch
 
 ---
 
-## 6. Buat Pull Request
+## 6. Buat Pull Request (PR)
 
-Buat Pull Request menuju branch **main**.
+Setelah task selesai dikerjakan, lakukan langkah berikut:
 
-Target:
+- Push branch feature ke GitHub.
 
-```
-feature/login
-      ↓
-     main
+```bash
+git push origin nama-branch
 ```
 
-Pada deskripsi PR, tambahkan:
+- Buka halaman repository di GitHub.
+- Klik tombol **Compare & pull request**.
+- Pastikan target branch adalah **`main`**.
+- Berikan judul Pull Request yang jelas dan deskriptif.
 
-```
+### Link Issue
+
+Pada deskripsi Pull Request, tambahkan:
+
+```text
 Closes #ID_ISSUE
 ```
 
 Contoh:
 
-```
+```text
 Closes #12
 ```
 
-Agar Issue otomatis ditutup setelah PR di-merge.
+Hal ini akan membuat GitHub menutup Issue secara otomatis setelah Pull Request berhasil di-merge.
 
-Setelah membuat PR, pindahkan task ke kolom **In Review**.
+Setelah Pull Request dibuat, pindahkan kartu task pada GitHub Projects dari **In Progress** ke **In Review**.
 
 ---
 
 ## 7. Code Review
 
-Reviewer akan memeriksa:
+Setelah Pull Request dibuat, informasikan kepada Team Lead untuk melakukan review.
 
-- Kode sesuai requirement
-- Tidak ada conflict
-- Build berhasil
-- Tidak ada bug yang terlihat
-- Penamaan kode sesuai standar
+Contoh pesan:
 
-Jika reviewer memberikan masukan, lakukan perbaikan pada branch yang sama lalu push kembali.
+> Halo Team Lead, task saya sudah selesai dikerjakan. Mohon bantu review Pull Request saya ya. Terima kasih!
 
-Setelah PR disetujui dan di-merge:
+Selama proses review:
 
-- Pindahkan task ke **Done** (atau otomatis jika menggunakan GitHub Automation).
+- Team Lead akan memeriksa kualitas kode, fungsionalitas, dan kesesuaian dengan requirement.
+- Jika terdapat komentar atau request changes, lakukan perbaikan pada branch yang sama kemudian push kembali.
+- Pull Request tidak boleh di-merge sebelum mendapatkan minimal **1 Approval** dari reviewer.
+
+Setelah Pull Request disetujui dan berhasil di-merge ke branch `main`:
+
 - Hapus branch feature apabila sudah tidak digunakan.
-
----
+- Pindahkan task ke kolom **Done** (atau akan berpindah otomatis jika menggunakan GitHub Automation).
 
 # 💬 Commit Message Convention
 
@@ -213,7 +218,7 @@ GitHub akan memperbarui Pull Request secara otomatis.
 
 ---
 
-# 📋 Best Practices
+#  📋 Best Practices
 
 - Selalu pull `main` sebelum mulai bekerja.
 - Satu branch hanya untuk satu Issue.
