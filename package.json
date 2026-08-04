@@ -1,0 +1,27 @@
+{
+  "name": "mentorshi-program-by-ruang-belajar-team-1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1/issues"
+  },
+  "homepage": "https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
