@@ -122,17 +122,17 @@ Response:
 
 ## 👥 6. Tabel Seluruh Anggota Tim (Mentorship Program)
 
-| Nama Lengkap | GitHub Username | Role | Kehadiran | Kontribusi / Scope Task |
-| --- | --- | --- | --- | --- |
-| **Aditya Beckham** | [`@Adityabeckham`](https://github.com/Adityabeckham) | **Team Lead** | Hadir | Project Management, Sprint Planning, PRD & Requirements |
-| **Salsa Nur Maulani** | [`@salsanrm`](https://github.com/salsanrm) | **Backend Developer** | Hadir | Boilerplate Express.js, Schema Migration, RLS, Auth API & Admin API |
-| **Mohdhazril** | [`@mohdhazril6168-design`](https://github.com/mohdhazril6168-design) | **Backend Developer** | Tidak Hadir | Event CRUD API, Rate Limiting, Verification API & Security |
-| **Ahmad Kurnia** | [`@AhmadKurnia13`](https://github.com/AhmadKurnia13) | **Full Stack Developer** | Tidak Hadir | Attendance API, Integration Testing, Code Review & Docs |
-| **Afra Awwalun Naima** | [`@Afrawwalun`](https://github.com/Afrawwalun) | **Frontend Developer** | Hadir | Boilerplate React + Tailwind, UI Login/Register, Dashboard Admin |
-| **Amirrul Salam** | [`@Amirrul24`](https://github.com/Amirrul24) | **Frontend Developer** | Hadir | Setup Router & Theme, UI Event Catalog, Form Validation FE |
-| **As'ad Miftahul Haq** | [`@asadmh59`](https://github.com/asadmh59) | **Frontend Developer** | Hadir | Global State, Axios Interceptors, Dashboard Panitia & Attendance UI |
-| **Zaa (Reza)** | [`@Muhammad-Reza351119`](https://github.com/Muhammad-Reza351119) | **UI/UX Designer** | Hadir | Wireframe Figma UI Auth, Catalog, Dashboard Panitia & Admin |
-| **Yuda Aditya** | [`@yudaadiitya`](https://github.com/yudaadiitya) | **Full Stack Developer** | Hadir | Assistance Core Dev & Testing Support |
+| Nama Lengkap | GitHub Username | Role | Kontribusi / Scope Task |
+| --- | --- | --- | --- |
+| **Aditya Beckham** | [`@Adityabeckham`](https://github.com/Adityabeckham) | **Team Lead** | Project Management, Sprint Planning, PRD & Requirements |
+| **Salsa Nur Maulani** | [`@salsanrm`](https://github.com/salsanrm) | **Backend Developer** | Boilerplate Express.js, Schema Migration, RLS, Auth API & Admin API |
+| **Mohdhazril** | [`@mohdhazril6168-design`](https://github.com/mohdhazril6168-design) | **Backend Developer** | Event CRUD API, Rate Limiting, Verification API & Security |
+| **Ahmad Kurnia** | [`@AhmadKurnia13`](https://github.com/AhmadKurnia13) | **Full Stack Developer** | Attendance API, Integration Testing, Code Review & Docs |
+| **Afra Awwalun Naima** | [`@Afrawwalun`](https://github.com/Afrawwalun) | **Frontend Developer** | Boilerplate React + Tailwind, UI Login/Register, Dashboard Admin |
+| **Amirrul Salam** | [`@Amirrul24`](https://github.com/Amirrul24) | **Frontend Developer** | Setup Router & Theme, UI Event Catalog, Form Validation FE |
+| **As'ad Miftahul Haq** | [`@asadmh59`](https://github.com/asadmh59) | **Frontend Developer** | Global State, Axios Interceptors, Dashboard Panitia & Attendance UI |
+| **Zaa (Reza)** | [`@Muhammad-Reza351119`](https://github.com/Muhammad-Reza351119) | **UI/UX Designer** | Wireframe Figma UI Auth, Catalog, Dashboard Panitia & Admin |
+| **Yuda Aditya** | [`@yudaadiitya`](https://github.com/yudaadiitya) | **Full Stack Developer** | Assistance Core Dev & Testing Support |
 
 ---
 
