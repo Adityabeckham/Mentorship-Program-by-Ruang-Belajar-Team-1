@@ -13,6 +13,17 @@ app.use(express.json()); // Parsing HTTP Request Body JSON
 app.use(express.urlencoded({ extended: true }));
 
 // 2. Base API Routes -(Sesuai API Contract Base URL)
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: '🚀 EventHub Kampus API Server is running',
+    healthCheck: '/api/v1/health',
+    version: '1.0.0'
+  });
+});
+
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 app.use('/api/v1', healthRoutes);
 
 // 3. Fallback Route Not Found (404)
