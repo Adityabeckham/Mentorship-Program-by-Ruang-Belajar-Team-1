@@ -72,7 +72,7 @@ EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi ama
 ### 📥 1. Clone Repository
 ```bash
 git clone https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1.git
-cd Mentorshi-Program-by-Ruang-Belajar-Team-1
+cd Mentorship-Program-by-Ruang-Belajar-Team-1
 ```
 
 ### ⚙️ 2. Setup Backend Server
@@ -120,7 +120,7 @@ Response:
 
 ---
 
-## 👥 6. Tabel Seluruh Anggota Tim (Mentorship Program)
+## 👥 6. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
 
 | Nama Lengkap | GitHub Username | Role | Kontribusi / Scope Task |
 | --- | --- | --- | --- |
