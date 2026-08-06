@@ -12,8 +12,8 @@ app.use(cors()); // Memungkinkan integrasi dengan React Frontend
 app.use(express.json()); // Parsing HTTP Request Body JSON
 app.use(express.urlencoded({ extended: true }));
 
-// 2. Base API Routes
-app.use('/api', healthRoutes);
+// 2. Base API Routes -(Sesuai API Contract Base URL)
+app.use('/api/v1', healthRoutes);
 
 // 3. Fallback Route Not Found (404)
 app.use((req, res, next) => {
