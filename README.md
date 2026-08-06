@@ -132,7 +132,7 @@ Response:
 | **Amirrul Salam** | [`@Amirrul24`](https://github.com/Amirrul24) | **Frontend Developer** | Setup Router & Theme, UI Event Catalog, Form Validation FE |
 | **As'ad Miftahul Haq** | [`@asadmh59`](https://github.com/asadmh59) | **Frontend Developer** | Global State, Axios Interceptors, Dashboard Panitia & Attendance UI |
 | **Zaa (Reza)** | [`@Muhammad-Reza351119`](https://github.com/Muhammad-Reza351119) | **UI/UX Designer** | Wireframe Figma UI Auth, Catalog, Dashboard Panitia & Admin |
-| **Yuda Aditya** | [`@yudaadiitya`](https://github.com/yudaadiitya) | **Full Stack Developer** | Assistance Core Dev & Testing Support |
+| **Yuda Aditya** | [`@yudaadiitya`](https://github.com/yudaadiitya) | **Delivery Manager at Talentyica** | Mentor |
 
 ---
 
