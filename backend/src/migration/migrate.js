@@ -21,6 +21,7 @@ const runMigrations = async () => {
       'registrations.sql',
       'attendance.sql',
       'policies.sql',
+      'indexes.sql',
     ];
 
     for (const file of migrationFiles) {
