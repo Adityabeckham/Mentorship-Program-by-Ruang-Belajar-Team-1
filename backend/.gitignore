@@ -1,5 +1,26 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# Dependencies
+node_modules/
 
-/src/generated/prisma
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE & AI Tool Caches (Claude, Windsurf, Antigravity, Gemini, Agents)
+.agents/
+.claude/
+.windsurf/
+.gemini/
+.idea/
+.vscode/
+skills-lock.json
+
+# Prisma Generated Client
+/src/generated/prisma/
+
+# Logs & Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log

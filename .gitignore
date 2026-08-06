@@ -1,2 +1,25 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment & Secrets
 .env
+.env.local
+.env.*.local
+
+# IDE & AI Editor Metadata / Caches
+.agents/
+.claude/
+.windsurf/
+.gemini/
+.vscode/
+.idea/
+skills-lock.json
+
+# OS Garbage Files
+.DS_Store
+Thumbs.db
+
+# Build Outputs & Logs
+dist/
+build/
+*.log
