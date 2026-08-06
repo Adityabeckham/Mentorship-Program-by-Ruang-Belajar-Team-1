@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Base styles for EventHub Kampus */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
