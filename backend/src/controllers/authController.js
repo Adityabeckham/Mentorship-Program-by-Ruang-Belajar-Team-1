@@ -1,8 +1,5 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Client } = require('pg'); // atau gunakan instansiasi Supabase / DB client milikmu
-
-// Model/Query Helpers (Disesuaikan dengan koneksi DB kamu)
 const supabase = require('../config/supabase');
 
 // 1. POST /auth/register
@@ -12,7 +9,21 @@ exports.register = async (req, res, next) => {
 
     // Validation
     if (!nama || !email || !password) {
-      return res.status(400).json({ message: 'Nama, email, dan password wajib diisi' });
+      return res.status(400).json({ 
+        status: 'fail',
+        statusCode: 400,
+        message: 'Nama, email, dan password wajib diisi' 
+      });
+    }
+
+    // Sanitize & validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        status: 'fail',
+        statusCode: 400,
+        message: 'Format email tidak valid' 
+      });
     }
 
     // Cek apakah email sudah terdaftar
@@ -20,10 +31,14 @@ exports.register = async (req, res, next) => {
       .from('users')
       .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (existingUser) {
-      return res.status(400).json({ message: 'Email sudah terdaftar' });
+      return res.status(400).json({ 
+        status: 'fail',
+        statusCode: 400,
+        message: 'Email sudah terdaftar' 
+      });
     }
 
     // Hashing Password dengan Bcrypt (Salt round = 10)
@@ -38,7 +53,7 @@ exports.register = async (req, res, next) => {
           nama,
           email,
           password: hashedPassword,
-          role: role || 'mahasiswa', // default role jika tidak diisi
+          role: role && ['mahasiswa', 'panitia', 'admin'].includes(role) ? role : 'mahasiswa',
         },
       ])
       .select('id, nama, email, role, created_at')
@@ -48,6 +63,7 @@ exports.register = async (req, res, next) => {
 
     res.status(201).json({
       status: 'success',
+      statusCode: 201,
       message: 'Registrasi berhasil',
       data: newUser,
     });
@@ -62,7 +78,11 @@ exports.login = async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email dan password wajib diisi' });
+      return res.status(400).json({ 
+        status: 'fail',
+        statusCode: 400,
+        message: 'Email dan password wajib diisi' 
+      });
     }
 
     // Cari user berdasarkan email
@@ -70,16 +90,24 @@ exports.login = async (req, res, next) => {
       .from('users')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (error || !user) {
-      return res.status(401).json({ message: 'Kredensial tidak valid (email/password salah)' });
+      return res.status(401).json({ 
+        status: 'fail',
+        statusCode: 401,
+        message: 'Kredensial tidak valid (email/password salah)' 
+      });
     }
 
     // Membandingkan password inputan dengan hashed password di database
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Kredensial tidak valid (email/password salah)' });
+      return res.status(401).json({ 
+        status: 'fail',
+        statusCode: 401,
+        message: 'Kredensial tidak valid (email/password salah)' 
+      });
     }
 
     // Membuat JWT Token yang memuat payload: user id dan role
@@ -88,12 +116,13 @@ exports.login = async (req, res, next) => {
       role: user.role,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'supersecretjwtkey123', {
       expiresIn: process.env.JWT_EXPIRES_IN || '1d',
     });
 
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       message: 'Login berhasil',
       token,
       user: {
