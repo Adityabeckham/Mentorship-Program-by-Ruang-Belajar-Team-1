@@ -4,6 +4,7 @@ const cors = require('cors');
 const healthRoutes = require('./src/routes/healthRoutes');
 const errorHandler = require('./src/middlewares/errorHandler');
 const authRoutes = require('./src/routes/authRoutes');
+const registrationRoutes = require('./src/routes/registrationRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,7 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes); // Base Route untuk Autentikasi
+app.use('/api/v1', registrationRoutes);
 
 // 3. Fallback Route Not Found (404)
 app.use((req, res, next) => {
