@@ -7,6 +7,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const registrationRoutes = require('./src/routes/registrationRoutes');
 const eventRoutes = require('./src/routes/eventRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +34,7 @@ app.use('/api/v1/auth', authRoutes); // Base Route untuk Autentikasi
 app.use('/api/v1', registrationRoutes);
 app.use('/api/v1', eventRoutes);
 app.use('/api/v1', dashboardRoutes);
+app.use('/api/v1', userRoutes);
 
 // 3. Fallback Route Not Found (404)
 app.use((req, res, next) => {
