@@ -9,6 +9,9 @@ const eventRoutes = require('./src/routes/eventRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 
+// validator
+const sanitizeInput = require('./src/middlewares/sanitizeMiddleware');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -16,6 +19,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors()); // Memungkinkan integrasi dengan React Frontend
 app.use(express.json()); // Parsing HTTP Request Body JSON
 app.use(express.urlencoded({ extended: true }));
+
+// Global Sanitasi Input (Melindungi dari XSS di seluruh endpoint)
+app.use(sanitizeInput);
 
 // 2. Base API Routes -(Sesuai API Contract Base URL)
 app.get('/', (req, res) => {

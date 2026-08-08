@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const validate = require('../middlewares/validateMiddleware');
+const { registerValidation } = require('../validators/authValidators');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 
@@ -8,7 +10,7 @@ const { authorizeRoles } = require('../middlewares/roleMiddleware');
 router.use(authenticateToken, authorizeRoles('admin'));
 
 // Manajemen Panitia
-router.post('/admin/panitia', userController.createPanitia);
+router.post('/admin/panitia', registerValidation, validate, userController.createPanitia); // Menggunakan registerValidation untuk pembuatan panitia baru
 router.get('/admin/panitia', userController.getPanitiaList);
 router.put('/admin/panitia/:id', userController.updatePanitia);
 
