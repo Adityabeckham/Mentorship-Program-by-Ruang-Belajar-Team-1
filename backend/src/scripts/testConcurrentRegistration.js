@@ -1,15 +1,31 @@
 const axios = require('axios');
+require('dotenv').config();
 
-const EVENT_ID = 'b4b34352-f762-4eef-9c54-e704d1a5d730';
-const BASE_URL = 'http://localhost:5000/api/v1';
+// Konfigurasi dinamis dari Environment Variable atau CLI Parameter
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:5000/api/v1';
+const EVENT_ID = process.env.TEST_EVENT_ID || process.argv[2];
 
-const TOKENS = [
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBiNmNiYmY2LTlmMjgtNDVmMS05YjY1LTU1MTgzMWNmODRiYiIsInJvbGUiOiJtYWhhc2lzd2EiLCJpYXQiOjE3ODYxNjIyOTUsImV4cCI6MTc4NjI0ODY5NX0.BBFkzjJBp6rOdPg7qN-STKI8XdEVdEz_FsGkGz1pWVM',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjRkOTQwNDcwLWZiMDgtNDBhOS04MTczLTg5YTk5OWE4ZTI4OSIsInJvbGUiOiJtYWhhc2lzd2EiLCJpYXQiOjE3ODYxNjM1ODUsImV4cCI6MTc4NjI0OTk4NX0.oBpK-Lgs9r0ShJq9U177ebJT3vOTal8_FH2Fq0P7BPM',
-];
+// Membaca token JWT dari Environment Variable TEST_TOKENS (dipisahkan koma)
+const rawTokens = process.env.TEST_TOKENS ? process.env.TEST_TOKENS.split(',') : [];
+const TOKENS = rawTokens.map((t) => t.trim()).filter(Boolean);
 
 async function testConcurrency() {
-  console.log('Memulai simulasi pendaftaran serentak...\n');
+  if (!EVENT_ID) {
+    console.error('❌ Error: TEST_EVENT_ID belum ditentukan.');
+    console.log('💡 Petunjuk: Set env TEST_EVENT_ID=<uuid> atau jalankan dengan argument:');
+    console.log('   node src/scripts/testConcurrentRegistration.js <EVENT_ID>\n');
+    process.exit(1);
+  }
+
+  if (TOKENS.length === 0) {
+    console.error('❌ Error: Tidak ada JWT token yang diberikan untuk pengujian.');
+    console.log('💡 Petunjuk Security: Hindari hardcode token JWT di dalam file source code.');
+    console.log('   Set env TEST_TOKENS="token1,token2" sebelum menjalankan script pengujian.\n');
+    process.exit(1);
+  }
+
+  console.log(`🚀 Memulai simulasi pendaftaran serentak untuk Event ID: ${EVENT_ID}`);
+  console.log(`👥 Jumlah pengguna teruji: ${TOKENS.length}\n`);
 
   const requests = TOKENS.map((token, index) =>
     axios
