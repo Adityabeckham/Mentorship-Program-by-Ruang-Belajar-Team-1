@@ -1,15 +1,32 @@
 import axios from 'axios';
 
-// Instansiasi Axios Client terpusat
-const api = axios.create({
+// Base Axios Instance terpusat untuk seluruh HTTP Requests
+const API = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor Request: Otomatis menyuntikkan JWT Token jika pengguna sudah login
-api.interceptors.request.use(
+// Helper functions untuk manajemen Token Authorization Header
+export const setAuthToken = (token) => {
+  if (token) {
+    API.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('token', token);
+  } else {
+    delete API.defaults.headers.common['Authorization'];
+    localStorage.removeItem('token');
+  }
+};
+
+export const clearAuthToken = () => {
+  delete API.defaults.headers.common['Authorization'];
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+};
+
+// Interceptor Request: Otomatis menyuntikkan JWT Token dari localStorage
+API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -20,17 +37,15 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor Response: Penanganan global error 401 (Unauthorized) & 403 (Forbidden)
-api.interceptors.response.use(
+// Interceptor Response: Penanganan global status error (401 Unauthorized)
+API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Hapus token lokal jika terdeteksi kadaluarsa
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearAuthToken();
     }
     return Promise.reject(error);
   }
 );
 
-export default api;
+export default API;
