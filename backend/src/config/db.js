@@ -2,7 +2,6 @@ require('dotenv').config();
 const postgres = require('postgres');
 
 const connectionString = process.env.DATABASE_URL;
-console.log('Database connection string:', connectionString);
 
 if (!connectionString) {
   console.warn('⚠️ Warning: DATABASE_URL tidak ditemukan di .env! Database connection mungkin tidak terhubung.');
