@@ -63,3 +63,82 @@ exports.updateEventStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+// 3. GET /events (Daftar Event Publik berstatus 'published' dengan Pagination & Filtering)
+exports.getPublicEvents = async (req, res, next) => {
+  try {
+    // Ambil query parameter
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const search = req.query.search || '';
+    const category = req.query.category || '';
+
+    // Hitung offset pagination
+    const offset = (page - 1) * limit;
+
+    // Inisialisasi query Supabase: HANYA event berstatus 'published'
+    let query = supabase
+      .from('events')
+      .select('id, title, description, location, event_date, quota, status, created_at', { count: 'exact' })
+      .eq('status', 'published')
+      .order('event_date', { ascending: true });
+
+    // Filter pencarian berdasarkan judul/lokasi jika diberikan
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,location.ilike.%${search}%`);
+    }
+
+    // Filter kategori jika diberikan
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    // Terapkan Range/Pagination
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: events, count, error } = await query;
+    if (error) throw error;
+
+    const totalPages = Math.ceil((count || 0) / limit);
+
+    res.status(200).json({
+      status: 'success',
+      pagination: {
+        total_data: count || 0,
+        total_pages: totalPages,
+        current_page: page,
+        limit,
+      },
+      data: events,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 4. GET /events/:id (Detail Event Publik)
+exports.getPublicEventDetail = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Ambil event berdasarkan ID, PASTIKAN statusnya 'published'
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('id, title, description, location, event_date, quota, status, created_at')
+      .eq('id', id)
+      .eq('status', 'published')
+      .single();
+
+    // Jika event tidak ditemukan atau statusnya BUKAN published 
+    if (error || !event) {
+      return next(new AppError('Event tidak ditemukan atau belum dipublikasikan.', 404));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: event,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

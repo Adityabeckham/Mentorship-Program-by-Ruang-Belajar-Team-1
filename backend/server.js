@@ -37,8 +37,8 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes); // Base Route untuk Autentikasi
-app.use('/api/v1', registrationRoutes);
 app.use('/api/v1', eventRoutes);
+app.use('/api/v1', registrationRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
 
