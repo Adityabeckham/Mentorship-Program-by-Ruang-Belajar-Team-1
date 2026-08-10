@@ -1,6 +1,6 @@
 const supabase = require('../config/supabase');
 
-// 1. GET /events/managed (Untuk Panitia & Admin)
+// 1. GET /events/manage (Untuk Panitia & Admin)
 exports.getManagedEvents = async (req, res, next) => {
   try {
     const { id: userId, role } = req.user;
@@ -39,6 +39,8 @@ exports.updateEventStatus = async (req, res, next) => {
     const validStatuses = ['draft', 'published', 'completed', 'canceled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
         message: `Status tidak valid. Gunakan salah satu dari: ${validStatuses.join(', ')}`,
       });
     }
@@ -51,7 +53,11 @@ exports.updateEventStatus = async (req, res, next) => {
       .single();
 
     if (error || !updatedEvent) {
-      return res.status(404).json({ message: 'Event tidak ditemukan.' });
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan.',
+      });
     }
 
     res.status(200).json({
@@ -103,6 +109,7 @@ exports.getPublicEvents = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       pagination: {
         total_data: count || 0,
         total_pages: totalPages,
@@ -131,11 +138,16 @@ exports.getPublicEventDetail = async (req, res, next) => {
 
     // Jika event tidak ditemukan atau statusnya BUKAN published 
     if (error || !event) {
-      return next(new AppError('Event tidak ditemukan atau belum dipublikasikan.', 404));
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan atau belum dipublikasikan.',
+      });
     }
 
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       data: event,
     });
   } catch (err) {
