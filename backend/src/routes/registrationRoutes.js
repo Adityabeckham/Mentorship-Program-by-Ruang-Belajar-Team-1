@@ -7,9 +7,9 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
 router.use(authenticateToken);
 
 // GET /api/v1/registrations/me
-router.get('/registrations/me', registrationController.getMyRegistrations);
+router.get('/registrations/me', authenticateToken, registrationController.getMyRegistrations);
 
 // POST /api/v1/events/:id/register
-router.post('/events/:id/register', registrationController.registerToEvent);
+router.post('/events/:id/register', authenticateToken, registrationController.registerToEvent);
 
 module.exports = router;

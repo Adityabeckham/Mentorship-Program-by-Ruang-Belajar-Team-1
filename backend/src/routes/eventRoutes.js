@@ -4,6 +4,10 @@ const eventController = require('../controllers/eventController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 
+// Ga wajib login untuk liat event
+router.get('/events', eventController.getPublicEvents);
+router.get('/events/:id', eventController.getPublicEventDetail);
+
 // Wajib Login untuk seluruh rute di bawah
 router.use(authenticateToken);
 
