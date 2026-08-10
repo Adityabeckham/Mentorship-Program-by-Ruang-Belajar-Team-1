@@ -1,4 +1,5 @@
 require('dotenv').config();
+const helmet = require('helmet');
 const express = require('express');
 const cors = require('cors');
 const healthRoutes = require('./src/routes/healthRoutes');
@@ -14,6 +15,9 @@ const sanitizeInput = require('./src/middlewares/sanitizeMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Helmet Security Headers 
+app.use(helmet());
 
 // 1. Core Middlewares
 app.use(cors()); // Memungkinkan integrasi dengan React Frontend
