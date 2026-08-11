@@ -1,0 +1,117 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../providers/AuthProvider';
+import authService from '../services/authService';
+
+const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!email || !password) {
+      setErrorMsg('Email dan password wajib diisi');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authService.login({ email, password });
+      
+      if (response.status === 'success' || response.token) {
+        login({
+          token: response.token,
+          user: response.user
+        });
+        
+        // Redirect berdasarkan role pengguna
+        if (response.user.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (response.user.role === 'panitia') {
+          navigate('/panitia/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        setErrorMsg(response.message || 'Login gagal');
+      }
+    } catch (error) {
+      console.error(error);
+      const msg = error.response?.data?.message || 'Email atau password salah';
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900 p-4 transition-colors duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 transition-colors duration-200">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">EventHub Kampus</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Masuk untuk mengakses event kampus</p>
+        </div>
+
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 text-sm rounded-lg">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="nama@kampus.ac.id"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Memproses...' : 'Masuk'}
+          </button>
+        </form>
+
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Belum punya akun?{' '}
+            <Link to="/register" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+              Daftar di sini
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
