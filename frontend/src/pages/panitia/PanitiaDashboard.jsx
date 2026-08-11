@@ -1,28 +1,63 @@
 import React from 'react';
 import { useAuth } from '../../providers/AuthProvider';
 
+const PANITIA_EVENTS = [
+  { title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026', status: 'published', peserta: 2, quota: 100 },
+  { title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026', status: 'rejected', peserta: 0, quota: 60 },
+];
+
 const PanitiaDashboard = () => {
   const { user } = useAuth();
 
-  return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Dashboard Panitia</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">Selamat datang, Panitia <span className="font-semibold text-blue-600 dark:text-blue-400">{user?.nama}</span> ({user?.organization_name || 'Organisasi Kampus'})!</p>
+  const stats = [
+    { num: '5', lbl: 'Total Event Dibuat', accent: '' },
+    { num: '1', lbl: 'Pending Verifikasi', accent: 'amber' },
+    { num: '2', lbl: 'Event Published', accent: 'mint' },
+    { num: '1', lbl: 'Event Ditolak', accent: 'coral' },
+  ];
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/30">
-            <h3 className="text-blue-800 dark:text-blue-300 text-sm font-medium">Event Saya</h3>
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">8</p>
+  return (
+    <div className="page-fade">
+      <div className="section-title">
+        <span className="eyebrow">Statistik Organisasi</span>
+        <h2 style={{ color: '#fff' }}>Dashboard Panitia Organisasi</h2>
+      </div>
+
+      <div className="stat-grid">
+        {stats.map((s) => (
+          <div key={s.lbl} className={`stat-card ${s.accent}`}>
+            <div className="num">{s.num}</div>
+            <div className="lbl">{s.lbl}</div>
           </div>
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800/30">
-            <h3 className="text-green-800 dark:text-green-300 text-sm font-medium">Total Peserta Mendaftar</h3>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">240</p>
-          </div>
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
-            <h3 className="text-indigo-800 dark:text-indigo-300 text-sm font-medium">Kehadiran Terkonfirmasi</h3>
-            <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">185</p>
-          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="toolbar">
+          <h3 style={{ fontSize: '18px', margin: 0 }}>Ringkasan Event Milik Organisasi Saya</h3>
+          <button className="btn btn-primary btn-sm">+ Buat Draft Event Baru</button>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Judul Event</th>
+                <th>Tanggal</th>
+                <th>Status Verifikasi Admin</th>
+                <th>Peserta Terdaftar / Kuota</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PANITIA_EVENTS.map((ev) => (
+                <tr key={ev.title}>
+                  <td><strong>{ev.title}</strong></td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px' }}>{ev.date}</td>
+                  <td><span className={`badge ${ev.status}`}>{ev.status}</span></td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '12px' }}>{ev.peserta} / {ev.quota}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
