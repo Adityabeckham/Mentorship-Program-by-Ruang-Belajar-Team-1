@@ -30,11 +30,10 @@ const AppRouter = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 dark:border-blue-400"></div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Memuat sistem autentikasi...</p>
-        </div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '48px', height: '48px', border: '4px solid rgba(246,201,69,0.3)', borderTopColor: '#f6c945', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+        <p style={{ fontFamily: "'Space Mono', monospace", color: '#f4ede0', fontSize: '13px' }}>Memuat sistem autentikasi...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

@@ -1,16 +1,214 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import authService from '../services/authService';
 
+/* ============================================================
+   ROBOT MASCOT SVG
+   - Eyes follow email character count (pupil slides left→right)
+   - Hands cover eyes when password is focused
+   - Head turns red + frown when error occurs
+   ============================================================ */
+const RobotMascot = ({ emailLength, passwordFocused, hasError }) => {
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  // Pupil X offset: 0 chars → -9px  |  ~20 chars → 0px  |  40+ chars → +9px
+  const pupilOffset = clamp((emailLength / 30) * 18 - 9, -9, 9);
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2px', userSelect: 'none' }}>
+      <svg
+        width="130" height="108"
+        viewBox="-8 -14 126 120"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-label="Robot maskot EventHub Kampus"
+        style={{
+          filter: 'drop-shadow(0 10px 18px rgba(0,0,0,0.22))',
+          animation: (!passwordFocused && !hasError) ? 'mascotBob 2.4s ease-in-out infinite' : 'none',
+          transition: 'filter 0.3s ease',
+        }}
+      >
+        {/* Ground shadow */}
+        <ellipse cx="55" cy="100" rx="30" ry="5.5" fill="rgba(0,0,0,0.13)" />
+
+        {/* Antenna stem */}
+        <line x1="55" y1="-2" x2="55" y2="10" stroke="#8a7355" strokeWidth="3.5" strokeLinecap="round" />
+
+        {/* Antenna ball — pulsing */}
+        <circle cx="55" cy="-7" r="6.5" fill={hasError ? '#b5342a' : '#f6c945'} stroke={hasError ? '#87231c' : '#b8912b'} strokeWidth="2.2">
+          <animate attributeName="r" values="6.5;8;6.5" dur="1.8s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;0.7;1" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+
+        {/* Head body */}
+        <rect
+          x="8" y="8" width="94" height="76" rx="24"
+          fill={hasError ? '#fdecea' : '#f4ede0'}
+          stroke={hasError ? '#b5342a' : '#c9bda2'}
+          strokeWidth="3"
+          style={{ transition: 'fill 0.4s ease, stroke 0.4s ease' }}
+        />
+
+        {/* Top visor band */}
+        <rect x="16" y="11" width="78" height="10" rx="5" fill={hasError ? '#b5342a' : '#1e3a5f'} opacity="0.11" />
+
+        {/* Ear bolt left */}
+        <circle cx="8" cy="46" r="6.5" fill="#e0d5c0" stroke="#c9bda2" strokeWidth="2.2" />
+        <circle cx="8" cy="46" r="2.8" fill="#8a7355" />
+
+        {/* Ear bolt right */}
+        <circle cx="102" cy="46" r="6.5" fill="#e0d5c0" stroke="#c9bda2" strokeWidth="2.2" />
+        <circle cx="102" cy="46" r="2.8" fill="#8a7355" />
+
+        {/* ===== EYES ===== */}
+        {!passwordFocused ? (
+          <>
+            {/* Left eye */}
+            <circle cx="37" cy="44" r="15.5" fill="white" stroke="#d9cfba" strokeWidth="2" />
+            <g style={{ transform: `translateX(${pupilOffset}px)`, transition: 'transform 0.18s ease' }}>
+              <circle cx="37" cy="44" r="8.5" fill={hasError ? '#b5342a' : '#1e3a5f'} />
+              <circle cx="33.5" cy="40.5" r="3" fill="white" opacity="0.85" />
+              <circle cx="40.5" cy="42" r="1.5" fill="white" opacity="0.5" />
+            </g>
+
+            {/* Right eye */}
+            <circle cx="73" cy="44" r="15.5" fill="white" stroke="#d9cfba" strokeWidth="2" />
+            <g style={{ transform: `translateX(${pupilOffset}px)`, transition: 'transform 0.18s ease' }}>
+              <circle cx="73" cy="44" r="8.5" fill={hasError ? '#b5342a' : '#1e3a5f'} />
+              <circle cx="69.5" cy="40.5" r="3" fill="white" opacity="0.85" />
+              <circle cx="76.5" cy="42" r="1.5" fill="white" opacity="0.5" />
+            </g>
+          </>
+        ) : (
+          /* Password focused — squint + hands */
+          <>
+            {/* Squinting arcs */}
+            <path d="M 23 39 Q 37 51 51 39" stroke="#1e3a5f" strokeWidth="3.8" fill="none" strokeLinecap="round" />
+            <path d="M 59 39 Q 73 51 87 39" stroke="#1e3a5f" strokeWidth="3.8" fill="none" strokeLinecap="round" />
+
+            {/* ─── Left arm + hand ─── */}
+            <path d="M 2 98 Q 4 70 26 52" stroke="#7a5230" strokeWidth="10" strokeLinecap="round" fill="none"
+              style={{ animation: 'liftHand 0.38s cubic-bezier(0.16,1,0.3,1) both' }} />
+            <circle cx="26" cy="51" r="12.5" fill="#f6c945" stroke="#b8912b" strokeWidth="2.5"
+              style={{ animation: 'liftHand 0.38s cubic-bezier(0.16,1,0.3,1) both' }} />
+            {/* Left fingers */}
+            {[[18, 40], [26, 35], [36, 36]].map(([cx, cy], i) => (
+              <circle key={i} cx={cx} cy={cy} r="6" fill="#f6c945" stroke="#b8912b" strokeWidth="2"
+                style={{ animation: `liftHand 0.38s cubic-bezier(0.16,1,0.3,1) ${i * 0.04}s both` }} />
+            ))}
+
+            {/* ─── Right arm + hand ─── */}
+            <path d="M 108 98 Q 106 70 84 52" stroke="#7a5230" strokeWidth="10" strokeLinecap="round" fill="none"
+              style={{ animation: 'liftHand 0.38s cubic-bezier(0.16,1,0.3,1) both' }} />
+            <circle cx="84" cy="51" r="12.5" fill="#f6c945" stroke="#b8912b" strokeWidth="2.5"
+              style={{ animation: 'liftHand 0.38s cubic-bezier(0.16,1,0.3,1) both' }} />
+            {/* Right fingers */}
+            {[[92, 40], [84, 35], [74, 36]].map(([cx, cy], i) => (
+              <circle key={i} cx={cx} cy={cy} r="6" fill="#f6c945" stroke="#b8912b" strokeWidth="2"
+                style={{ animation: `liftHand 0.38s cubic-bezier(0.16,1,0.3,1) ${i * 0.04}s both` }} />
+            ))}
+          </>
+        )}
+
+        {/* ===== MOUTH ===== */}
+        {hasError ? (
+          <path d="M 38 66 Q 55 57 72 66" stroke="#b5342a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+        ) : (
+          <path d="M 38 66 Q 55 76 72 66" stroke="#1e3a5f" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+        )}
+
+        {/* Blush cheeks (happy state) */}
+        {!hasError && !passwordFocused && (
+          <>
+            <ellipse cx="22" cy="62" rx="8" ry="5.5" fill="#ef6f4e" opacity="0.26" />
+            <ellipse cx="88" cy="62" rx="8" ry="5.5" fill="#ef6f4e" opacity="0.26" />
+          </>
+        )}
+      </svg>
+    </div>
+  );
+};
+
+/* ============================================================
+   MAGNETIC BUTTON — follows cursor magnet-style on hover
+   ============================================================ */
+const MagneticButton = ({ children, className, disabled, style, type }) => {
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const btnRef = useRef(null);
+  const isTouch = useRef(typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches);
+
+  const handleMouseMove = useCallback((e) => {
+    if (disabled || isTouch.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const x = (e.clientX - (rect.left + rect.width / 2)) * 0.38;
+    const y = (e.clientY - (rect.top + rect.height / 2)) * 0.38;
+    setOffset({ x, y });
+  }, [disabled]);
+
+  const handleMouseLeave = useCallback(() => setOffset({ x: 0, y: 0 }), []);
+
+  return (
+    <button
+      ref={btnRef}
+      type={type || 'button'}
+      className={`btn-magnetic ${className || ''}`}
+      disabled={disabled}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        ...style,
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        transition: (offset.x === 0 && offset.y === 0)
+          ? 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s'
+          : 'transform 0.1s ease',
+      }}
+    >
+      {children}
+    </button>
+  );
+};
+
+/* ============================================================
+   EMAIL LENGTH INDICATOR (small progress dots)
+   ============================================================ */
+const EmailDots = ({ length }) => {
+  const steps = 5;
+  const filled = Math.min(Math.floor((length / 30) * steps), steps);
+  return (
+    <div style={{ display: 'flex', gap: '4px', marginTop: '6px', alignItems: 'center' }}>
+      {Array.from({ length: steps }).map((_, i) => (
+        <div key={i} style={{
+          width: i < filled ? '14px' : '6px', height: '6px', borderRadius: '3px',
+          background: i < filled ? 'var(--navy)' : '#d9cfba',
+          transition: 'all 0.25s ease',
+        }} />
+      ))}
+      {length > 0 && (
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: '#8a7355', marginLeft: '4px' }}>
+          {length} karakter
+        </span>
+      )}
+    </div>
+  );
+};
+
+/* ============================================================
+   MAIN LOGIN PAGE
+   ============================================================ */
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [shaking, setShaking] = useState(false);
+  const formRef = useRef(null);
+
+  const triggerShake = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 700);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +216,7 @@ const Login = () => {
 
     if (!email || !password) {
       setErrorMsg('Email dan password wajib diisi.');
+      triggerShake();
       return;
     }
 
@@ -27,132 +226,118 @@ const Login = () => {
       login(data.token, data.user);
       navigate('/dashboard');
     } catch (error) {
-      console.error(error);
       const msg = error.response?.data?.message || 'Login gagal. Periksa kembali email dan password Anda.';
       setErrorMsg(msg);
+      triggerShake();
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4 transition-colors duration-200 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
-      {/* Background decorative blobs */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none" />
+    <div className="auth-page-wrapper page-fade">
+      <div
+        ref={formRef}
+        className={`card form-card ${shaking ? 'form-shake-error' : ''}`}
+        style={{
+          margin: 0,
+          width: '100%',
+          maxWidth: '420px',
+          paddingBottom: '28px',
+          transition: 'box-shadow 0.3s ease',
+        }}
+      >
+        {/* ── MASCOT ── */}
+        <RobotMascot
+          emailLength={email.length}
+          passwordFocused={passwordFocused}
+          hasError={!!errorMsg}
+        />
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo / Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-xl mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+        {/* ── HEADER ── */}
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <div className="eyebrow" style={{ color: '#8a7355', display: 'block', marginBottom: '4px' }}>
+            Autentikasi Akun
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">EventHub Kampus</h1>
-          <p className="text-indigo-200 text-sm mt-1">Platform Event Digital Mahasiswa</p>
+          <h2 style={{ margin: 0, fontSize: '26px' }}>Masuk EventHub Kampus</h2>
         </div>
 
-        {/* Glassmorphism Card */}
-        <div className="rounded-2xl backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border border-white/20 dark:border-gray-800 shadow-2xl p-8 transition-all duration-200">
-          <div className="mb-6">
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">Masuk ke Akun</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Masukkan kredensial Anda untuk melanjutkan</p>
+        {/* ── ERROR MESSAGE ── */}
+        {errorMsg && (
+          <div className="form-msg error" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '16px' }}>⚠️</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* ── FORM ── */}
+        <form onSubmit={handleSubmit}>
+          {/* Email */}
+          <div className="field">
+            <label>Email Kampus</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorMsg) setErrorMsg('');
+              }}
+              placeholder="budi@kampus.ac.id"
+              autoComplete="email"
+            />
+            <EmailDots length={email.length} />
           </div>
 
-          {errorMsg && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 text-sm flex items-start gap-2.5">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                Alamat Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@kampus.ac.id"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent transition-all duration-200 text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent transition-all duration-200 text-sm"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label="Toggle password visibility"
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <button
-              id="login-submit"
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              {loading ? (
-                <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-              )}
-              {loading ? 'Memvalidasi...' : 'Masuk Sekarang'}
-            </button>
-          </form>
-
-          <div className="text-center mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Belum memiliki akun?{' '}
-              <Link to="/register" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline transition-colors">
-                Daftar di sini
-              </Link>
-            </p>
+          {/* Password */}
+          <div className="field">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errorMsg) setErrorMsg('');
+              }}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+            {passwordFocused && (
+              <small style={{ color: '#8a7355', fontFamily: "'Space Mono', monospace" }}>
+                🔒 Maskot menutup mata saat kamu mengetik!
+              </small>
+            )}
           </div>
-        </div>
 
-        <p className="text-center text-indigo-200/70 text-xs mt-6">
-          © 2025 EventHub Kampus. All rights reserved.
+          {/* Magnetic Submit Button */}
+          <MagneticButton
+            type="submit"
+            className="btn btn-navy"
+            disabled={loading}
+            style={{ width: '100%', justifyContent: 'center', marginTop: '4px', fontSize: '14px', letterSpacing: '0.5px' }}
+          >
+            {loading ? (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                  style={{ animation: 'spin 0.8s linear infinite' }}>
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                Memvalidasi...
+              </>
+            ) : 'Masuk Sekarang →'}
+          </MagneticButton>
+        </form>
+
+        {/* ── SWITCH LINK ── */}
+        <p className="switch-link" style={{ marginTop: '18px' }}>
+          Belum punya akun?{' '}
+          <Link to="/register">Daftar Akun Mahasiswa</Link>
         </p>
       </div>
+
+      {/* Spinner keyframe (for loading state) */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

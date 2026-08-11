@@ -1,31 +1,26 @@
 /**
- * StatusBadge — Design System Component
- * Standard Acceptance Criteria dari Team Lead Feedback
- *
- * Props:
- *   status: 'published' | 'pending_verification' | 'rejected' | 'draft'
- *   size:   'sm' | 'md' (default 'md')
+ * StatusBadge — Design System Component (Prototype Style)
  */
 const statusConfig = {
   published: {
     label: 'Published',
-    className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    dot: 'bg-emerald-500',
+    className: 'bg-[#e2f3e8] text-[var(--color-ok-green)] border border-[#86efac]',
+    dot: 'bg-green-500',
   },
   pending_verification: {
-    label: 'Pending Verification',
-    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    dot: 'bg-amber-500',
+    label: 'Pending',
+    className: 'bg-[#fef3c7] text-[#92400e] border border-[#f59e0b]',
+    dot: 'bg-yellow-500',
   },
   rejected: {
     label: 'Rejected',
-    className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    className: 'bg-[#fee2e2] text-[#991b1b] border border-[#f87171]',
     dot: 'bg-red-500',
   },
   draft: {
     label: 'Draft',
-    className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-    dot: 'bg-gray-400',
+    className: 'bg-[#e5e7eb] text-[#4b5563] border border-[#9ca3af]',
+    dot: 'bg-gray-500',
   },
 };
 
@@ -33,11 +28,10 @@ const StatusBadge = ({ status, size = 'md' }) => {
   const config = statusConfig[status] || statusConfig.draft;
   const sizeClass = size === 'sm'
     ? 'text-[10px] px-2 py-0.5'
-    : 'text-xs px-2.5 py-1';
+    : 'text-[11px] px-2.5 py-1';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 font-bold rounded-full ${sizeClass} ${config.className}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${config.dot}`} />
+    <span className={`inline-flex items-center gap-1.5 font-bold rounded-[12px] font-work ${sizeClass} ${config.className}`}>
       {config.label}
     </span>
   );
