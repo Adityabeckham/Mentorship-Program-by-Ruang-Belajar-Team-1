@@ -32,8 +32,8 @@ const Login = () => {
   };
 
   return (
-    <div className="page-fade">
-      <div className="card form-card">
+    <div className="page-fade" style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+      <div className="card form-card" style={{ margin: 0, width: '100%' }}>
         <div className="eyebrow" style={{ color: '#8a7355' }}>Autentikasi Akun</div>
         <h2>Masuk EventHub Kampus</h2>
 
