@@ -20,6 +20,12 @@ router.get(
   eventController.getManagedEvents
 );
 
+router.get(
+  '/events/:id/participants',
+  authorizeRoles('panitia', 'admin'),
+  eventController.getEventParticipants
+);
+
 // CRUD Event Panitia
 router.post(
   '/panitia/events',

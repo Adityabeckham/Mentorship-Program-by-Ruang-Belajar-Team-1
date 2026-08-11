@@ -272,7 +272,58 @@ exports.deleteEvent = async (req, res, next) => {
   }
 };
 
-// 8. PATCH /panitia/events/:id/submit
+// 8. GET /events/:id/participants (Untuk Panitia)
+exports.getEventParticipants = async (req, res, next) => {
+  try {
+    const eventId = req.params.id;
+    const { id: userId, role } = req.user;
+
+    // Pastikan event milik panitia ini (jika bukan admin)
+    if (role !== 'admin') {
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id, created_by')
+        .eq('id', eventId)
+        .single();
+        
+      if (eventError || !event || event.created_by !== userId) {
+        return res.status(403).json({
+          status: 'fail',
+          statusCode: 403,
+          message: 'Anda tidak memiliki akses ke event ini.',
+        });
+      }
+    }
+
+    const { data: participants, error } = await supabase
+      .from('registrations')
+      .select(`
+        id,
+        status,
+        registered_at,
+        users (
+          id,
+          nama,
+          email
+        )
+      `)
+      .eq('event_id', eventId)
+      .order('registered_at', { ascending: true });
+
+    if (error) throw error;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      total: participants.length,
+      data: participants,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 9. PATCH /panitia/events/:id/submit
 exports.submitEventForVerification = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -333,7 +384,7 @@ exports.submitEventForVerification = async (req, res, next) => {
   }
 };
 
-// 9. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
+// 10. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
 exports.getPendingEventsForAdmin = async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -380,7 +431,7 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
   }
 };
 
-// 10. PATCH /admin/events/:id/verify (Approve / Reject Event)
+// 11. PATCH /admin/events/:id/verify (Approve / Reject Event)
 exports.verifyEventByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
