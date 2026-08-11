@@ -64,6 +64,7 @@ const Home = () => {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('All');
   const [activeModalEvent, setActiveModalEvent] = useState(null);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const filtered = EVENTS.filter(ev => {
     const matchCat = selectedCat === 'All' || ev.category === selectedCat;
@@ -78,14 +79,20 @@ const Home = () => {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 
-  const handleRegisterEvent = (ev) => {
+  const handleRegisterEvent = async (ev) => {
     if (!user) {
       toast.error('Silakan masuk (login) terlebih dahulu untuk mendaftar event.');
       navigate('/login');
       return;
     }
-    toast.success(`Berhasil mendaftar event: "${ev.title}"!`);
-    setActiveModalEvent(null);
+    
+    setIsRegistering(true);
+    // Simulate API Call for Registration
+    setTimeout(() => {
+      toast.success(`Berhasil mendaftar event: "${ev.title}"! Tiket tersedia di Dashboard Anda.`);
+      setIsRegistering(false);
+      setActiveModalEvent(null);
+    }, 1200);
   };
 
   return (
@@ -230,8 +237,18 @@ const Home = () => {
                       className="btn btn-navy"
                       style={{ width: '100%', justifyContent: 'center' }}
                       onClick={() => handleRegisterEvent(activeModalEvent)}
+                      disabled={isRegistering}
                     >
-                      {user ? '🎟️ Daftar Event Sekarang' : '🔑 Masuk untuk Mendaftar'}
+                      {isRegistering ? (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 0.8s linear infinite', marginRight: '6px' }}>
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                          </svg>
+                          Memproses Pendaftaran...
+                        </>
+                      ) : (
+                        user ? '🎟️ Daftar Event Sekarang' : '🔑 Masuk untuk Mendaftar'
+                      )}
                     </button>
                   )}
                 </div>
