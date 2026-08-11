@@ -3,22 +3,45 @@ const router = express.Router();
 const eventController = require('../controllers/eventController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
+const validate = require('../middlewares/validateMiddleware');
+const { createEventValidation } = require('../validators/eventValidators');
 
-// Ga wajib login untuk liat event
+// Public
 router.get('/events', eventController.getPublicEvents);
 router.get('/events/:id', eventController.getPublicEventDetail);
 
-// Wajib Login untuk seluruh rute di bawah
+// Protected (All)
 router.use(authenticateToken);
 
-// Panitia melihat event miliknya, Admin melihat SELURUH event
+// Management
 router.get(
   '/events/manage',
   authorizeRoles('panitia', 'admin'),
   eventController.getManagedEvents
 );
 
-// Khusus Admin untuk mengubah status (misal merubah ke 'published')
+// CRUD Event Panitia
+router.post(
+  '/panitia/events',
+  authorizeRoles('panitia', 'admin'),
+  createEventValidation,
+  validate,
+  eventController.createEvent
+);
+
+router.put(
+  '/panitia/events/:id',
+  authorizeRoles('panitia', 'admin'),
+  eventController.updateEvent
+);
+
+router.delete(
+  '/panitia/events/:id',
+  authorizeRoles('panitia', 'admin'),
+  eventController.deleteEvent
+);
+
+// Admin Status Update
 router.patch(
   '/events/:id/status',
   authorizeRoles('admin'),
