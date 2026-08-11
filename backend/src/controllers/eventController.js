@@ -271,3 +271,56 @@ exports.deleteEvent = async (req, res, next) => {
     next(err);
   }
 };
+
+// 8. GET /events/:id/participants (Untuk Panitia)
+exports.getEventParticipants = async (req, res, next) => {
+  try {
+    const eventId = req.params.id;
+    const { id: userId, role } = req.user;
+
+    // Pastikan event milik panitia ini (jika bukan admin)
+    if (role !== 'admin') {
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id, created_by')
+        .eq('id', eventId)
+        .single();
+        
+      if (eventError || !event || event.created_by !== userId) {
+        return res.status(403).json({
+          status: 'fail',
+          statusCode: 403,
+          message: 'Anda tidak memiliki akses ke event ini.',
+        });
+      }
+    }
+
+    const { data: participants, error } = await supabase
+      .from('registrations')
+      .select(`
+        id,
+        status,
+        registered_at,
+        users (
+          id,
+          name,
+          email,
+          university,
+          major
+        )
+      `)
+      .eq('event_id', eventId)
+      .order('registered_at', { ascending: true });
+
+    if (error) throw error;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      total: participants.length,
+      data: participants,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
