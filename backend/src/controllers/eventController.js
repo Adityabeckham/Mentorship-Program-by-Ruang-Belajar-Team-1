@@ -270,4 +270,196 @@ exports.deleteEvent = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+<<<<<<< Updated upstream
+=======
+};
+
+// 8. PATCH /panitia/events/:id/submit
+exports.submitEventForVerification = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const panitiaId = req.user.id; // Diambil dari JWT Payload via authMiddleware
+
+    // Cari event, pastikan milik panitia aktif & belum di-soft delete
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, title, description, location, event_date, quota, status, created_by')
+      .eq('id', id)
+      .eq('created_by', panitiaId)
+      .is('deleted_at', null)
+      .single();
+
+    // Acceptance Criteria: Hanya panitia pemilik event yang dapat melakukan submit
+    if (findError || !event) {
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan atau Anda tidak memiliki akses ke event ini.',
+      });
+    }
+
+    // Cek apakah status saat ini adalah 'draft' atau 'rejected' (Bisa diajukan ulang jika ditolak)
+    if (event.status !== 'draft' && event.status !== 'rejected') {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: `Hanya event berstatus 'draft' yang dapat diajukan. Status saat ini: '${event.status}'.`,
+      });
+    }
+
+    // Acceptance Criteria: Validasi memastikan field wajib telah diisi lengkap
+    if (!event.title || !event.description || !event.location || !event.event_date || !event.quota) {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: 'Gagal mengajukan event. Informasi event belum lengkap (title, description, location, event_date, dan quota wajib diisi).',
+      });
+    }
+
+    // Acceptance Criteria: Ubah status dari 'draft' menjadi 'pending_verification'
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('events')
+      .update({
+        status: 'pending_verification',
+        updated_at: new Date(),
+      })
+      .eq('id', id)
+      .select('id, title, status, updated_at')
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Event berhasil diajukan untuk diverifikasi oleh admin.',
+      data: updatedEvent,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 9. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
+exports.getPendingEventsForAdmin = async (req, res, next) => {
+  try {
+    const { status } = req.query; // Opsional: ?status=pending_verification / ?status=rejected dll
+
+    let query = supabase
+      .from('events')
+      .select(`
+        id,
+        title,
+        description,
+        location,
+        event_date,
+        quota,
+        status,
+        rejection_reason,
+        created_at,
+        created_by,
+        users:created_by (
+          id,
+          nama,
+          email
+        )
+      `)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    // Secara default, tampilkan event yang butuh verifikasi ('pending_verification')
+    if (status) {
+      query = query.eq('status', status);
+    } else {
+      query = query.eq('status', 'pending_verification');
+    }
+
+    const { data: events, error } = await query;
+    if (error) throw error;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      total: events.length,
+      data: events,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 10. PATCH /admin/events/:id/verify (Approve / Reject Event)
+exports.verifyEventByAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action, rejection_reason } = req.body; // action: 'approve' atau 'reject'
+
+    // Validasi input action
+    if (!action || !['approve', 'reject'].includes(action)) {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: "Aksi tidak valid. Nilai 'action' harus berupa 'approve' atau 'reject'.",
+      });
+    }
+
+    // Cek keberadaan event & pastikan statusnya 'pending_verification'
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, title, status')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
+
+    if (findError || !event) {
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan.',
+      });
+    }
+
+    // Tentukan status baru & alasan penolakan
+    let newStatus = '';
+    let reasonToSave = null;
+
+    if (action === 'approve') {
+      newStatus = 'published';
+    } else if (action === 'reject') {
+      // Acceptance Criteria: Jika reject, rejection_reason wajib diisi
+      if (!rejection_reason || rejection_reason.trim() === '') {
+        return res.status(400).json({
+          status: 'fail',
+          statusCode: 400,
+          message: "Alasan penolakan ('rejection_reason') wajib diisi jika menolak event.",
+        });
+      }
+      newStatus = 'rejected';
+      reasonToSave = rejection_reason;
+    }
+
+    // Update status event 
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('events')
+      .update({
+        status: newStatus,
+        rejection_reason: reasonToSave,
+        updated_at: new Date(),
+      })
+      .eq('id', id)
+      .select('id, title, status, rejection_reason, updated_at')
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: `Event berhasil di-${action === 'approve' ? 'setujui dan dipublikasikan' : 'tolak'}.`,
+      data: updatedEvent,
+    });
+  } catch (err) {
+    next(err);
+  }
+>>>>>>> Stashed changes
 };
