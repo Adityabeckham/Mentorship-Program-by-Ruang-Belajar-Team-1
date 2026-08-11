@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
+import toast from 'react-hot-toast';
 
 const POSTER_COLORS = {
   yellow: 'c-yellow',
@@ -14,111 +15,47 @@ const EVENTS = [
   {
     id: 'e1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', category: 'Technology',
     org: 'BEM Fakultas Ilmu Komputer', location: 'Auditorium Utama & Zoom Hybrid', date: '2026-08-20T09:00',
-    speaker: 'Budi Rahardjo (AI Expert & Tech Venture Partner)', quota: 100, registered: 2, status: 'published', color: 'yellow',
+    speaker: 'Budi Rahardjo (AI Expert & Tech Venture Partner)', quota: 100, registered: 98, status: 'published', color: 'yellow',
     benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '🍱 Free Lunch Box & Snack', '🎁 Doorprize E-Wallet 3Jt'],
-    desc: 'Buka peluang karir masa depanmu! Pelajari bagaimana Generative AI dan Prompt Engineering mentransformasi industri perangkat lunak modern. Cocok untuk mahasiswa semua jurusan yang ingin beradaptasi dengan era AI.'
+    desc: 'Buka peluang karir masa depanmu! Pelajari bagaimana Generative AI dan Prompt Engineering mentransformasi industri perangkat lunak modern. Terbuka untuk seluruh mahasiswa kampus.'
+  },
+  {
+    id: 'e2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', category: 'Technology',
+    org: 'UKM Robotika Kampus', location: 'Lab Robotika & Gedung Serbaguna', date: '2026-08-22T09:00',
+    speaker: 'Dr. Eng. Ir. Hendra (Pakar Mekatronika)', quota: 80, registered: 45, status: 'published', color: 'sky',
+    benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '🤖 Kit Komponen Robot Dasar', '🏆 Total Hadiah 5 Juta'],
+    desc: 'Pelatihan praktis pembuatan robot bertema Battle Bot. Peserta akan merakit, memprogram mikrokontroler, dan bertanding di arena akhir acara.'
   },
   {
     id: 'e3', title: 'Donor Darah Massal & Pemeriksaan Kesehatan Gratis', category: 'Health',
     org: 'Himpunan Mahasiswa Kesehatan', location: 'Gedung Serbaguna Kampus', date: '2026-08-25T08:00',
-    speaker: 'Tim Dokter Medis PMI Kota', quota: 150, registered: 1, status: 'published', color: 'mint',
+    speaker: 'Tim Dokter Medis PMI Kota', quota: 150, registered: 110, status: 'published', color: 'mint',
     benefits: ['✨ Piagam Kemanusiaan PMI', '🥛 Paket Suplemen & Susu', '🩺 Cek Gula Darah & Kolesterol'],
-    desc: 'Setetes darahmu penyelemat jiwa sesama! Dapatkan pemeriksaan kesehatan gratis dari dokter spesialis. Kegiatan ini juga terbuka untuk umum dan warga sekitar kampus.'
+    desc: 'Setetes darahmu penyelemat jiwa sesama! Dapatkan pemeriksaan kesehatan gratis dari dokter spesialis dan pemeriksaan gula darah mandiri.'
   },
   {
-    id: 'e4', title: 'Workshop UI/UX Design: Figma for Beginners', category: 'Art',
-    org: 'UKM Multimedia & Desain', location: 'Lab Komputer A', date: '2026-08-28T13:00',
-    speaker: 'Sarah Wijaya (Senior Product Designer)', quota: 40, registered: 35, status: 'published', color: 'lavender',
-    benefits: ['✨ E-Sertifikat', '🎨 Figma Pro 1 Bulan', '📈 Portfolio Review'],
-    desc: 'Belajar desain antarmuka aplikasi mobile menggunakan Figma dari nol. Bawa laptop masing-masing yang sudah terinstall Figma desktop app.'
+    id: 'e4', title: 'Kampus Art Exhibition & Live Acoustic Concert', category: 'Art',
+    org: 'UKM Seni & Seni Suara', location: 'Lapangan Outdoor Kampus', date: '2026-08-28T15:00',
+    speaker: 'Dian Sastro & Band Kampus Alumnus', quota: 200, registered: 200, status: 'published', color: 'lavender',
+    benefits: ['✨ E-Sertifikat SKKM (3 Poin)', '🎨 Merch Sticker Event', '🍿 Snack & Softdrink Gratis'],
+    desc: 'Nikmati pameran seni lukis dan instalasi mahasiswa kampus dipadu konser akustik merdu saat matahari terbenam.'
   },
   {
-    id: 'e5', title: 'Lomba Esai Mahasiswa Nasional 2026', category: 'Career',
-    org: 'UKM Penalaran', location: 'Online Submission', date: '2026-09-10T23:59',
-    speaker: '-', quota: 500, registered: 120, status: 'published', color: 'coral',
-    benefits: ['🏆 Total Hadiah 10 Juta', '🏅 Medali Pemenang', '📚 Publikasi Nasional'],
-    desc: 'Tuangkan ide kreatifmu dalam Lomba Esai bertema "Mahasiswa di Era Disrupsi Digital". Pendaftaran gratis bagi mahasiswa kampus ini.'
+    id: 'e5', title: 'Workshop Public Speaking & Leadership Masterclass', category: 'Career',
+    org: 'BEM Universitas Kampus', location: 'Ruang Seminar Perpustakaan L5', date: '2026-09-05T10:00',
+    speaker: 'Najwa Shihab (Jurnalis & Founder Narasi)', quota: 120, registered: 60, status: 'published', color: 'coral',
+    benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '📚 Buku Panduan Leadership', '☕ Coffee Break Premium'],
+    desc: 'Kuasai seni berkomunikasi di depan umum, tingkatkan rasa percaya diri, dan bangun jiwa kepemimpinan mahasiswa di era digital.'
   }
 ];
 
 const CATEGORIES = ['All', 'Technology', 'Career', 'Health', 'Art'];
 const CAT_LABELS = {
-  All: '🌟 Semua Event', Technology: '🤖 Technology & AI',
-  Career: '💼 Business & Career', Health: '🩺 Health & Social', Art: '🎨 Art & Culture'
-};
-
-const formatDate = (dt) => new Date(dt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-const EventDetailModal = ({ event, onClose, user, navigate }) => {
-  if (!event) return null;
-  const isFull = event.registered >= event.quota;
-
-  const handleRegister = () => {
-    if (!user) {
-      navigate('/login');
-    } else {
-      alert('Fitur pendaftaran event akan segera hadir di Sprint selanjutnya!');
-      onClose();
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
-        
-        <div className="modal-body">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <span className="cat-badge">{event.category}</span>
-            <span style={{ fontSize: '12.5px', color: '#8a7355', fontWeight: 'bold' }}>{event.org}</span>
-          </div>
-          
-          <h2>{event.title}</h2>
-          
-          <div style={{ marginBottom: '24px', fontSize: '15px', lineHeight: '1.6', color: '#4a3626' }}>
-            {event.desc}
-          </div>
-
-          <div className="modal-grid">
-            <div>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8a7355', fontWeight: 'bold', marginBottom: '4px' }}>Jadwal Pelaksanaan</div>
-              <div style={{ fontWeight: '600', color: '#132840' }}>📅 {formatDate(event.date)}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8a7355', fontWeight: 'bold', marginBottom: '4px' }}>Lokasi</div>
-              <div style={{ fontWeight: '600', color: '#132840' }}>📍 {event.location}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8a7355', fontWeight: 'bold', marginBottom: '4px' }}>Pembicara/Pemateri</div>
-              <div style={{ fontWeight: '600', color: '#132840' }}>🎤 {event.speaker}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8a7355', fontWeight: 'bold', marginBottom: '4px' }}>Sisa Kuota</div>
-              <div style={{ fontWeight: '600', color: isFull ? '#b5342a' : '#2f7a4f' }}>
-                🎟️ {isFull ? 'Kouta Penuh' : `${event.quota - event.registered} kursi tersedia (dari ${event.quota})`}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8a7355', fontWeight: 'bold', marginBottom: '8px' }}>Benefit Peserta</div>
-            <div className="benefit-chips" style={{ flexWrap: 'wrap' }}>
-              {event.benefits.map((b, i) => <span key={i} className="chip">{b}</span>)}
-            </div>
-          </div>
-
-          <button 
-            className="btn btn-navy" 
-            style={{ width: '100%', justifyContent: 'center', opacity: isFull ? 0.6 : 1 }}
-            disabled={isFull}
-            onClick={handleRegister}
-          >
-            {isFull ? 'Event Penuh' : (user ? 'Daftar Event Ini' : 'Login untuk Mendaftar')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  All: '🌟 Semua Event',
+  Technology: '🤖 Technology & AI',
+  Career: '💼 Business & Career',
+  Health: '🩺 Health & Social',
+  Art: '🎨 Art & Culture'
 };
 
 const Home = () => {
@@ -126,14 +63,30 @@ const Home = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('All');
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [activeModalEvent, setActiveModalEvent] = useState(null);
 
   const filtered = EVENTS.filter(ev => {
     const matchCat = selectedCat === 'All' || ev.category === selectedCat;
-    const matchSearch = !search || ev.title.toLowerCase().includes(search.toLowerCase()) ||
-      ev.org.toLowerCase().includes(search.toLowerCase()) || ev.speaker.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search ||
+      ev.title.toLowerCase().includes(search.toLowerCase()) ||
+      ev.org.toLowerCase().includes(search.toLowerCase()) ||
+      ev.speaker.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  const formatDate = (dt) => new Date(dt).toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const handleRegisterEvent = (ev) => {
+    if (!user) {
+      toast.error('Silakan masuk (login) terlebih dahulu untuk mendaftar event.');
+      navigate('/login');
+      return;
+    }
+    toast.success(`Berhasil mendaftar event: "${ev.title}"!`);
+    setActiveModalEvent(null);
+  };
 
   return (
     <div className="page-fade">
@@ -169,10 +122,11 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Poster Board (Katalog Event) */}
+      {/* Poster Board Grid */}
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <p>😔 Tidak ada event yang sesuai dengan pencarian.</p>
+          <p style={{ fontSize: '18px', margin: '0 0 8px' }}>😔 Tidak ada event yang sesuai.</p>
+          <p style={{ fontSize: '13px', color: '#dbe6f2' }}>Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
         </div>
       ) : (
         <div className="board">
@@ -183,7 +137,7 @@ const Home = () => {
               <div
                 key={ev.id}
                 className={`poster ${POSTER_COLORS[ev.color] || 'c-yellow'}`}
-                onClick={() => setSelectedEvent(ev)}
+                onClick={() => setActiveModalEvent(ev)}
                 style={{ cursor: 'pointer' }}
               >
                 <div>
@@ -211,12 +165,81 @@ const Home = () => {
       )}
 
       {/* Event Detail Modal */}
-      <EventDetailModal 
-        event={selectedEvent} 
-        onClose={() => setSelectedEvent(null)}
-        user={user}
-        navigate={navigate}
-      />
+      {activeModalEvent && (
+        <div className="modal-backdrop" onClick={() => setActiveModalEvent(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setActiveModalEvent(null)}>✕</button>
+
+            <div className="eyebrow" style={{ color: '#8a7355', marginBottom: '4px' }}>
+              Detail Event Resmi Kampus
+            </div>
+
+            <div className="detail-wrap" style={{ marginTop: '12px' }}>
+              <div className={`detail-poster ${POSTER_COLORS[activeModalEvent.color] || 'c-yellow'}`}>
+                <span className="cat-badge">{activeModalEvent.category}</span>
+                <div className="org" style={{ marginTop: '4px' }}>{activeModalEvent.org}</div>
+                <h2>{activeModalEvent.title}</h2>
+                <div className="speaker-highlight" style={{ fontSize: '13px', padding: '6px 10px', background: 'rgba(255,255,255,0.6)' }}>
+                  🎤 Speaker: {activeModalEvent.speaker}
+                </div>
+                <p className="desc">{activeModalEvent.desc}</p>
+                <div className="perks-box">
+                  <h4>Fasilitas &amp; Benefit Peserta:</h4>
+                  {activeModalEvent.benefits.map((b, i) => (
+                    <div key={i} className="perk-item">{b}</div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ticket">
+                <div>
+                  <h4>Status Kuota Pendaftaran</h4>
+                  <div style={{ fontSize: '20px', fontFamily: "'Anton', sans-serif", marginTop: '6px' }}>
+                    {activeModalEvent.registered} / {activeModalEvent.quota} Terisi
+                  </div>
+                  
+                  <div className="quota-bar">
+                    <div
+                      className={
+                        activeModalEvent.registered >= activeModalEvent.quota
+                          ? 'full'
+                          : (activeModalEvent.quota - activeModalEvent.registered) <= 10
+                          ? 'warn'
+                          : ''
+                      }
+                      style={{ width: `${Math.min(100, (activeModalEvent.registered / activeModalEvent.quota) * 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="perforation" />
+
+                  <h4>Waktu &amp; Tempat</h4>
+                  <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--ink)' }}>
+                    📅 {formatDate(activeModalEvent.date)}<br />
+                    📍 {activeModalEvent.location}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '24px' }}>
+                  {activeModalEvent.registered >= activeModalEvent.quota ? (
+                    <button className="btn btn-danger" style={{ width: '100%' }} disabled>
+                      🚫 Kuota Pendaftaran Penuh
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-navy"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={() => handleRegisterEvent(activeModalEvent)}
+                    >
+                      {user ? '🎟️ Daftar Event Sekarang' : '🔑 Masuk untuk Mendaftar'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
