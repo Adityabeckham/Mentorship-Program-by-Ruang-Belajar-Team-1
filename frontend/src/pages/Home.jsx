@@ -46,7 +46,7 @@ const EVENTS = [
     speaker: 'Najwa Shihab (Jurnalis & Founder Narasi)', quota: 120, registered: 60, status: 'published', color: 'coral',
     benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '📚 Buku Panduan Leadership', '☕ Coffee Break Premium'],
     desc: 'Kuasai seni berkomunikasi di depan umum, tingkatkan rasa percaya diri, dan bangun jiwa kepemimpinan mahasiswa di era digital.'
-  },
+  }
 ];
 
 const CATEGORIES = ['All', 'Technology', 'Career', 'Health', 'Art'];
@@ -138,6 +138,7 @@ const Home = () => {
                 key={ev.id}
                 className={`poster ${POSTER_COLORS[ev.color] || 'c-yellow'}`}
                 onClick={() => setActiveModalEvent(ev)}
+                style={{ cursor: 'pointer' }}
               >
                 <div>
                   <span className="cat-badge">{ev.category}</span>
