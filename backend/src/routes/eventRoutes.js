@@ -55,4 +55,18 @@ router.patch(
   eventController.submitEventForVerification
 );
 
+// Daftar pengajuan event yang butuh verifikasi
+router.get(
+  '/admin/events',
+  authorizeRoles('admin'),
+  eventController.getPendingEventsForAdmin
+);
+
+// Memproses keputusan (approve / reject)
+router.patch(
+  '/admin/events/:id/verify',
+  authorizeRoles('admin'),
+  eventController.verifyEventByAdmin
+);
+
 module.exports = router;
