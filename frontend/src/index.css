@@ -509,13 +509,12 @@ tr:hover td { background: #fbf7ee; }
 /* ===================== RESPONSIVE FORM CARD ===================== */
 @media (max-width: 480px) {
   .form-card {
-    padding: 20px 16px;
+    padding: 24px 16px;
     border-radius: 16px;
   }
   .auth-page-wrapper {
-    padding: 16px 12px;
-    align-items: flex-start;
-    padding-top: 32px;
+    padding: 16px;
+    align-items: center; /* keep centered vertically */
   }
 }
 
