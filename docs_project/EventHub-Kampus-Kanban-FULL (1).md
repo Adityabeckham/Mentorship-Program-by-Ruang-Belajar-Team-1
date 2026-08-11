@@ -1,6 +1,6 @@
 # EventHub Kampus - Kanban Task Management (Updated v2: Role Panitia & Verifikasi Admin)
 
-> Dokumen ini diperbarui berdasarkan revisi spesifikasi arsitektur **EventHub-Kampus-ERD-API-Contract-v2.md** dan acuan Design System UI Prototype **eventhub-kampus-prototype.html**.
+> Dokumen ini diperbarui berdasarkan revisi spesifikasi arsitektur **EventHub-Kampus-ERD-API-Contract-v2.md** dan acuan Design System UI Prototype **docs_project/prototype/eventhub-kampus-prototype.html** (Corkboard & Sticky Paper Theme).
 
 ## Ringkasan Proyek
 
@@ -30,27 +30,32 @@ Platform manajemen event kampus yang mendukung 3 tingkatan role pengguna:
 
 ---
 
-# 🎨 Standar Design System & Acceptance Criteria Slicing UI
+# 🎨 Standar Design System & Acceptance Criteria Slicing UI (Corkboard Bulletin Theme)
 
-Seluruh pengerjaan **Task Slicing UI (Frontend)** WAJIB mengikuti acuan visual dan spesifikasi **[eventhub-kampus-prototype.html](file:///d:/Mentorshi-Program-by-Ruang-Belajar-Team-1/eventhub-kampus-prototype.html)** dengan standar berikut:
+Seluruh pengerjaan **Task Slicing UI (Frontend)** WAJIB mengikuti acuan visual dan spesifikasi **[docs_project/prototype/eventhub-kampus-prototype.html](file:///d:/Mentorshi-Program-by-Ruang-Belajar-Team-1/docs_project/prototype/eventhub-kampus-prototype.html)** dengan standar berikut:
 
-### 🌟 1. Palette Warna & Aesthetics
-- **Primary Gradients:** Indigo to Blue (`bg-gradient-to-tr from-indigo-600 to-blue-600`).
-- **Dark Mode Support:** Seluruh komponen wajib mendukung Dark Mode (`dark:bg-gray-900`, `dark:bg-gray-800`, `dark:border-gray-700`, `dark:text-white`).
-- **Card Containers:** Menggunakan sudut tumpul modern (`rounded-2xl` / `rounded-xl`) dengan shadow halus (`shadow-xl` / `shadow-sm`).
-- **Glassmorphism:** Efek latar belakang transparan Blur (`backdrop-blur-md bg-white/80 dark:bg-gray-900/80`).
+### 📌 1. Tema Visual & Aesthetics (Corkboard & Sticky Notes)
+- **Background Board:** Tekstur Papan Gabus Campus Bulletin Board (`--cork: #7a5230`, `--cork-dark: #5c3e23`, `--cork-darker: #4a331e`).
+- **Sticky Paper Cards:** Kartu kertas event berwarna-warni (`--paper-yellow: #f6c945`, `--paper-coral: #ef6f4e`, `--paper-sky: #5fa8d3`, `--paper-mint: #6fbf97`, `--paper-lavender: #a78bfa`, `--paper-white: #f4ede0`).
+- **Visual Accents:** Efek Pin Tekan Push-Pin (`--shadow-pin`), kemiringan kartu/rotasi halus (`rotate(-1deg)` / `rotate(1deg)`), dan bayangan karton 3D (`--shadow-card`).
 
-### 🏷️ 2. Status Badge & Component System
+### 🔤 2. Tipografi & Font Family Hierarchy
+- **Header & Display Title:** Google Font `'Anton', sans-serif` (Judul retro tebal uppercase, brand tag, dan stamp status).
+- **Body Text:** Google Font `'Work Sans', sans-serif` (Teks deskripsi utama dan form input).
+- **Badges, Eyebrows & Code:** Google Font `'Space Mono', monospace` (Status badge, timestamp, statistik angka, dan metadata).
+
+### 🏷️ 3. Status Stamp Badges (Retro Rubber Stamp Effect)
 - **Status Event Badges:**
-  - `published` ➔ Green Pill (`bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400`).
-  - `pending_verification` ➔ Amber Pill (`bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400`).
-  - `rejected` ➔ Red Pill (`bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`).
-  - `draft` ➔ Gray Pill (`bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400`).
+  - `published` ➔ **OK Green Stamp** (`--ok-green: #2f7a4f`, border tebal & font monospace tebal).
+  - `pending_verification` ➔ **Warn Orange Stamp** (`--warn-orange: #d97706`).
+  - `rejected` ➔ **Stamp Red Stamp** (`--stamp-red: #b5342a`).
+  - `draft` ➔ **Paper Lavender / Muted Badge** (`--paper-lavender: #a78bfa`).
 
-### ⚡ 3. Micro-animations & Responsiveness
-- Hover zoom & scale transitions pada Card & Button (`transition-all duration-200 hover:scale-[1.02]`).
-- Loading Skeleton & Spinner pada interaksi fetch API data.
-- Layout responsive 100% dari skrin Mobile (375px) hingga Desktop (1440px).
+### 🔘 4. Button & Component System
+- **Btn Primary:** Warna `--paper-yellow` (`#f6c945`) dengan 3D bottom shadow `#b8912b`.
+- **Btn Navy:** Warna `--navy` (`#1e3a5f`) dengan 3D bottom shadow `#132840`.
+- **Btn Danger:** Warna `--stamp-red` (`#b5342a`) dengan 3D bottom shadow `#87231c`.
+- **Btn Success:** Warna `--ok-green` (`#2f7a4f`) dengan 3D bottom shadow `#1e5234`.
 
 ---
 
@@ -79,7 +84,7 @@ Seluruh pengerjaan **Task Slicing UI (Frontend)** WAJIB mengikuti acuan visual d
 |19|Sprint 3|Core Dev I|Endpoint Register Mahasiswa & Login JWT (All Roles)|Backend|Salsa (`@salsanrm`)|High|Done|
 |20|Sprint 3|Core Dev I|Endpoint GET /auth/me & Role Guard Middleware|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
 |21|Sprint 3|Core Dev I|Setup Rate Limiting & Security Headers Auth|Backend|Hazril (`@mohdhazril6168-design`)|Medium|Done|
-|22|Sprint 3|Core Dev I|UI Login & Register Mahasiswa + Integrasi API Auth (Acquires Design System Prototype)|Frontend|Afra (`@Afrawwalun`)|High|Done|
+|22|Sprint 3|Core Dev I|UI Login & Register Mahasiswa + Integrasi API Auth (Corkboard Prototype Aesthetic)|Frontend|Afra (`@Afrawwalun`)|High|Done|
 |23|Sprint 3|Core Dev I|Setup Protected Route & Role-based Guard FE|Frontend|Amirrul (`@Amirrul24`)|Medium|Done|
 |24|Sprint 3|Core Dev I|Axios Interceptor & Token Refresh Service FE|Frontend|Asad (`@asadmh59`)|Medium|Done|
 |25|Sprint 3|Core Dev I|Testing Endpoint Auth & Security Review Auth|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Done|
@@ -90,20 +95,20 @@ Seluruh pengerjaan **Task Slicing UI (Frontend)** WAJIB mengikuti acuan visual d
 |30|Sprint 4|Core Dev II|Endpoint Submit Event Panitia (PATCH /events/:id/submit -> pending_verification)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
 |31|Sprint 4|Core Dev II|Endpoint GET /admin/events (Scope Panitia Dashboard)|Backend|Salsa (`@salsanrm`)|Medium|Done|
 |32|Sprint 4|Core Dev II|Endpoint Stats Dashboard Panitia (GET /panitia/dashboard/stats)|Backend|Salsa (`@salsanrm`)|Medium|Done|
-|33|Sprint 4|Core Dev II|UI Katalog & Detail Event (Mahasiswa) - Design System Prototype|Frontend|Amirrul (`@Amirrul24`)|High|In Progress|
-|34|Sprint 4|Core Dev II|UI Registrasi Event & Riwayat Pendaftaran (Mahasiswa) - Design System Prototype|Frontend|Amirrul (`@Amirrul24`)|High|In Progress|
-|35|Sprint 4|Core Dev II|UI Dashboard Panitia (Statistik & List Event) - Design System Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
-|36|Sprint 4|Core Dev II|UI Form Buat & Edit Event (Panitia) - Design System Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
+|33|Sprint 4|Core Dev II|UI Katalog & Detail Event (Mahasiswa) - Corkboard Prototype|Frontend|Amirrul (`@Amirrul24`)|High|In Progress|
+|34|Sprint 4|Core Dev II|UI Registrasi Event & Riwayat Pendaftaran (Mahasiswa) - Corkboard Prototype|Frontend|Amirrul (`@Amirrul24`)|High|In Progress|
+|35|Sprint 4|Core Dev II|UI Dashboard Panitia (Statistik & List Event) - Corkboard Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
+|36|Sprint 4|Core Dev II|UI Form Buat & Edit Event (Panitia) - Corkboard Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
 |37|Sprint 4|Core Dev II|Code Review & Merge PR Sprint 4|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|In Progress|
 |38|Sprint 4|Core Dev II|Daily Progress Sync FE-BE Sprint 4|Full Stack|Ahmad (`@AhmadKurnia13`)|Low|In Progress|
 |39|Sprint 5|Core Dev III|Endpoint Admin Verifikasi Event (GET /admin/events & PATCH /admin/events/:id/verify)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
 |40|Sprint 5|Core Dev III|Endpoint Admin Kelola Akun Panitia (POST/GET/PUT /admin/panitia)|Backend|Salsa (`@salsanrm`)|High|Done|
 |41|Sprint 5|Core Dev III|Endpoint Stats Dashboard Admin Platform (GET /admin/dashboard/stats)|Backend|Salsa (`@salsanrm`)|High|Done|
 |42|Sprint 5|Core Dev III|Endpoint Kehadiran Peserta (GET /events/:id/participants & PATCH /attendance/:registration_id)|Full Stack|Ahmad (`@AhmadKurnia13`)|High|Done|
-|43|Sprint 5|Core Dev III|UI Dashboard Admin Platform & Stats Global - Design System Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
-|44|Sprint 5|Core Dev III|UI Verifikasi Event Admin (Review, Approve, Reject + Reason Modal) - Design System Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
-|45|Sprint 5|Core Dev III|UI Manajemen Akun Panitia Admin (Form Tambah Akun Panitia & List Orgas) - Design System Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
-|46|Sprint 5|Core Dev III|UI Marking Kehadiran Peserta & Table Peserta (Panitia) - Design System Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
+|43|Sprint 5|Core Dev III|UI Dashboard Admin Platform & Stats Global - Corkboard Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
+|44|Sprint 5|Core Dev III|UI Verifikasi Event Admin (Review, Approve, Reject + Reason Modal) - Corkboard Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
+|45|Sprint 5|Core Dev III|UI Manajemen Akun Panitia Admin (Form Tambah Akun Panitia & List Orgas) - Corkboard Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
+|46|Sprint 5|Core Dev III|UI Marking Kehadiran Peserta & Table Peserta (Panitia) - Corkboard Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
 |47|Sprint 5|Core Dev III|Validasi Input FE (Sanitasi Rejection Reason, Form Validations)|Frontend|Amirrul (`@Amirrul24`)|Medium|Done|
 |48|Sprint 5|Core Dev III|Validasi Input BE & Sanitasi Input (HTML/Script Tag Removal)|Backend|Salsa (`@salsanrm`)|Medium|Done|
 |49|Sprint 5|Core Dev III|Ownership Check Event & Attendance Security Validation|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
@@ -162,5 +167,5 @@ git push origin nama-branch
 ✅ Sprint 1 selesai  
 ✅ Finalisasi PRD & ERD/API Contract v2 selesai  
 ✅ Sprint 2, 3, 4 Core Backend & Auth Core Selesai  
-⏳ Sprint 4 & 5 Slicing UI (Frontend) sedang berlangsung (Acuan Design System: `eventhub-kampus-prototype.html`)  
+⏳ Sprint 4 & 5 Slicing UI (Frontend) sedang berlangsung (Acuan Design System: `docs_project/prototype/eventhub-kampus-prototype.html`)  
 🎯 Target akhir: Demo Day Sprint 8  
