@@ -40,8 +40,8 @@ const Register = () => {
   };
 
   return (
-    <div className="page-fade" style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-      <div className="card form-card" style={{ margin: 0, width: '100%' }}>
+    <div className="auth-page-wrapper page-fade">
+      <div className="card form-card" style={{ margin: 0, width: '100%', maxWidth: '420px' }}>
         <div className="eyebrow" style={{ color: '#8a7355' }}>Pendaftaran Mahasiswa</div>
         <h2>Buat Akun Mahasiswa Baru</h2>
         <p style={{ fontSize: '12.5px', color: '#8a7355', marginTop: '-6px' }}>

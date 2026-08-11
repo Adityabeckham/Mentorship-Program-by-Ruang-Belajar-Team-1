@@ -440,3 +440,82 @@ tr:hover td { background: #fbf7ee; }
 .quota-bar div { height: 100%; background: var(--ok-green); transition: width 0.4s ease; }
 .quota-bar div.warn { background: #d99a2b; }
 .quota-bar div.full { background: var(--stamp-red); }
+
+/* ===================== AUTH PAGE (LOGIN / REGISTER) ===================== */
+
+/* Full-viewport centering for login/register pages (no header) */
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* ===================== MASCOT ANIMATIONS ===================== */
+@keyframes mascotBob {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes liftHand {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+
+/* ===================== SHAKE ANIMATION (Login error) ===================== */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  12%       { transform: translateX(-11px); }
+  25%       { transform: translateX(10px); }
+  37%       { transform: translateX(-9px); }
+  50%       { transform: translateX(8px); }
+  62%       { transform: translateX(-6px); }
+  75%       { transform: translateX(5px); }
+  87%       { transform: translateX(-3px); }
+}
+
+.form-shake-error {
+  animation: shake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  box-shadow: 0 0 0 3px rgba(181, 52, 42, 0.35), var(--shadow-pin) !important;
+}
+
+/* ===================== MAGNETIC BUTTON ===================== */
+.btn-magnetic {
+  position: relative;
+  will-change: transform;
+}
+.btn-magnetic::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 12px;
+}
+
+/* ===================== INPUT FOCUS GLOW ===================== */
+.field input:focus {
+  border-color: var(--navy);
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+}
+
+/* ===================== RESPONSIVE FORM CARD ===================== */
+@media (max-width: 480px) {
+  .form-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+  .auth-page-wrapper {
+    padding: 16px 12px;
+    align-items: flex-start;
+    padding-top: 32px;
+  }
+}
+
