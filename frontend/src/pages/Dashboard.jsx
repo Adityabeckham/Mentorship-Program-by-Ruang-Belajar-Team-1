@@ -2,38 +2,46 @@ import React from 'react';
 import { useAuth } from '../providers/AuthProvider';
 
 const statusBadge = {
-  published: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  pending_verification: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  draft: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  published: 'c-mint', // Using the paper-mint color
+  pending_verification: 'c-yellow',
+  rejected: 'c-coral',
+  draft: 'c-sky',
 };
 
 const statusLabel = {
-  published: '✅ Published',
-  pending_verification: '⏳ Pending',
-  rejected: '❌ Rejected',
-  draft: '📝 Draft',
+  published: 'Published',
+  pending_verification: 'Pending',
+  rejected: 'Rejected',
+  draft: 'Draft',
 };
 
-const StatCard = ({ title, value, icon, gradient }) => (
-  <div className={`rounded-2xl p-5 text-white shadow-lg ${gradient} transition-all duration-200 hover:scale-[1.02] hover:shadow-xl`}>
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-sm font-semibold opacity-90">{title}</span>
-      <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-        {icon}
-      </div>
+const StatCard = ({ title, value, customClass }) => (
+  <div className={`relative p-5 rounded-lg shadow-pin text-ink cursor-pointer transition-transform duration-250 hover:scale-105 hover:-translate-y-1 hover:shadow-card flex flex-col justify-between min-h-[140px] z-10 ${customClass}`}>
+    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full shadow-[0_3px_6px_rgba(0,0,0,.45)]"
+      style={{ background: 'radial-gradient(circle at 35% 30%, #fff8, var(--color-stamp-red) 60%)' }}>
     </div>
-    <p className="text-3xl font-extrabold">{value}</p>
+    
+    <div>
+      <span className="font-mono text-[10px] font-bold uppercase py-1 px-2.5 rounded-[10px] bg-black/15 inline-block mb-2">
+        Statistik
+      </span>
+      <h3 className="font-anton text-[22px] leading-tight mb-2 opacity-90">{title}</h3>
+    </div>
+    
+    <div className="flex items-center justify-between">
+      <span className="font-work text-3xl font-extrabold">{value}</span>
+      <span className="text-[10px] font-bold uppercase bg-black/10 px-2 py-1 rounded">Total</span>
+    </div>
   </div>
 );
 
 const RecentEventRow = ({ name, status, date }) => (
-  <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 -mx-4 px-4 rounded-lg transition-colors duration-150">
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-[#ece3d2] last:border-0 hover:bg-[#fbf7ee] transition-colors bg-[#fffdf8]">
     <div>
-      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{name}</p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{date}</p>
+      <p className="text-[13.5px] font-bold text-ink mb-1">{name}</p>
+      <p className="font-mono text-[11px] text-[#8a7355]">{date}</p>
     </div>
-    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${statusBadge[status] || statusBadge.draft}`}>
+    <span className={`inline-block px-2.5 py-1 rounded-xl text-[11px] font-bold mt-2 sm:mt-0 shadow-sm ${statusBadge[status] || statusBadge.draft}`}>
       {statusLabel[status] || status}
     </span>
   </div>
@@ -42,11 +50,11 @@ const RecentEventRow = ({ name, status, date }) => (
 const Dashboard = () => {
   const { user } = useAuth();
 
-  // Placeholder data — will be replaced by real API later
+  // Placeholder data
   const stats = [
-    { title: 'Event Diikuti', value: '3', gradient: 'bg-gradient-to-br from-indigo-500 to-indigo-700', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> },
-    { title: 'Sertifikat Diperoleh', value: '2', gradient: 'bg-gradient-to-br from-emerald-500 to-emerald-700', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg> },
-    { title: 'Event Mendatang', value: '1', gradient: 'bg-gradient-to-br from-blue-500 to-blue-700', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { title: 'Event Diikuti', value: '3', customClass: 'c-yellow' },
+    { title: 'Sertifikat Diperoleh', value: '2', customClass: 'c-mint' },
+    { title: 'Event Mendatang', value: '1', customClass: 'c-sky' },
   ];
 
   const recentEvents = [
@@ -56,38 +64,45 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6 p-6 sm:p-8">
-      {/* Welcome Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-extrabold border border-white/30">
-            {user?.nama?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-indigo-200">Selamat datang kembali 👋</p>
-            <h1 className="text-2xl font-extrabold tracking-tight">{user?.nama || 'Mahasiswa'}</h1>
-            <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full capitalize font-semibold mt-1 inline-block">{user?.role}</span>
-          </div>
-        </div>
+    <div className="p-6 md:p-8 max-w-[1180px] mx-auto min-h-screen font-work pb-20">
+      {/* Hero / Banner */}
+      <div className="mb-10 text-white">
+        <span className="font-mono text-xs text-[#f0e6cf] uppercase tracking-[1.5px] opacity-85 mb-2 inline-block">
+          DASHBOARD MAHASISWA
+        </span>
+        <h1 className="font-anton text-[40px] md:text-[46px] leading-[1.1] text-white" style={{ textShadow: '2px 3px 0 rgba(0, 0, 0, .3)' }}>
+          SELAMAT DATANG, {user?.nama?.split(' ')[0] || 'MAHASISWA'}!
+        </h1>
+        <p className="text-[#f4ede0] max-w-[680px] leading-[1.6] text-[15px] mt-4 font-work">
+          Pantau event yang Anda ikuti, lihat riwayat pendaftaran, dan akses sertifikat kegiatan Anda di sini.
+        </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-6 mb-12">
         {stats.map((s) => (
           <StatCard key={s.title} {...s} />
         ))}
       </div>
 
-      {/* Recent Events Table */}
-      <div className="rounded-2xl backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border border-white/20 dark:border-gray-800 shadow-sm p-6 transition-all duration-200">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-extrabold text-gray-900 dark:text-white">Event Terbaru</h2>
-          <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold cursor-pointer hover:underline">Lihat semua →</span>
+      {/* Recent Events Table/Card */}
+      <div className="bg-paper-white rounded-xl shadow-pin p-6 md:p-8 text-ink">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-anton text-[28px] m-0">Event Terbaru</h2>
+          <button className="bg-transparent border-2 border-ink text-ink font-bold text-xs px-4 py-1.5 rounded-lg hover:bg-black/5 transition-colors font-work cursor-pointer">
+            LIHAT SEMUA
+          </button>
         </div>
-        <div>
-          {recentEvents.map((ev) => (
-            <RecentEventRow key={ev.name} {...ev} />
-          ))}
+        
+        <div className="border border-[#e5dcc8] rounded-lg overflow-hidden">
+          <div className="bg-[#efe7d7] border-b-2 border-[#e5dcc8] p-3 text-left">
+            <span className="font-mono text-[11px] uppercase text-[#8a7355] font-bold tracking-wider">Riwayat Pendaftaran</span>
+          </div>
+          <div>
+            {recentEvents.map((ev) => (
+              <RecentEventRow key={ev.name} {...ev} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

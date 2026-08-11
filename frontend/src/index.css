@@ -2,45 +2,97 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ================================================================
-   EventHub Kampus — Global Design System
-   Aligned with Standard Acceptance Criteria (Team Lead Feedback)
-   ================================================================ */
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+@theme {
+  --color-cork: #7a5230;
+  --color-cork-dark: #5c3e23;
+  --color-cork-darker: #4a331e;
+  --color-paper-yellow: #f6c945;
+  --color-paper-coral: #ef6f4e;
+  --color-paper-sky: #5fa8d3;
+  --color-paper-mint: #6fbf97;
+  --color-paper-lavender: #a78bfa;
+  --color-paper-white: #f4ede0;
+  --color-ink: #2b1b12;
+  --color-ink-soft: #4a3626;
+  --color-navy: #1e3a5f;
+  --color-navy-dark: #132840;
+  --color-stamp-red: #b5342a;
+  --color-ok-green: #2f7a4f;
+  --color-warn-orange: #d97706;
+  --color-purple: #6d28d9;
+
+  --font-work: 'Work Sans', sans-serif;
+  --font-anton: 'Anton', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  --shadow-pin: 0 10px 22px rgba(0, 0, 0, .38), 0 3px 6px rgba(0, 0, 0, .25);
+  --shadow-card: 0 12px 30px rgba(0, 0, 0, .25);
+  
+  --radius-xl: 12px;
+}
 
 @layer base {
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white antialiased transition-colors duration-200;
-    font-family: 'Inter', 'Work Sans', sans-serif;
+    font-family: var(--font-work);
+    color: var(--color-ink);
+    background:
+      radial-gradient(circle at 20% 10%, rgba(0, 0, 0, .08) 0, transparent 40px),
+      radial-gradient(circle at 70% 30%, rgba(0, 0, 0, .07) 0, transparent 50px),
+      radial-gradient(circle at 40% 70%, rgba(0, 0, 0, .06) 0, transparent 45px),
+      radial-gradient(circle at 85% 80%, rgba(0, 0, 0, .08) 0, transparent 55px),
+      radial-gradient(circle at 10% 85%, rgba(0, 0, 0, .06) 0, transparent 40px),
+      repeating-linear-gradient(45deg, rgba(0, 0, 0, .03) 0 2px, transparent 2px 6px),
+      linear-gradient(var(--color-cork), var(--color-cork-dark));
+    min-height: 100vh;
+    @apply antialiased transition-colors duration-200;
   }
 }
 
 @layer utilities {
-  /* ---- Gradient Primary ---- */
-  .gradient-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  .bg-cork-texture {
+    background:
+      radial-gradient(circle at 20% 10%, rgba(0, 0, 0, .08) 0, transparent 40px),
+      radial-gradient(circle at 70% 30%, rgba(0, 0, 0, .07) 0, transparent 50px),
+      radial-gradient(circle at 40% 70%, rgba(0, 0, 0, .06) 0, transparent 45px),
+      radial-gradient(circle at 85% 80%, rgba(0, 0, 0, .08) 0, transparent 55px),
+      radial-gradient(circle at 10% 85%, rgba(0, 0, 0, .06) 0, transparent 40px),
+      repeating-linear-gradient(45deg, rgba(0, 0, 0, .03) 0 2px, transparent 2px 6px),
+      linear-gradient(var(--color-cork), var(--color-cork-dark));
   }
 
-  /* ---- Glassmorphism Card ---- */
-  .glass-card {
-    @apply backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border border-white/20 dark:border-gray-800/60;
+  .shadow-pin {
+    box-shadow: var(--shadow-pin);
   }
 
-  /* ---- Status Badge System ---- */
-  .badge-published {
-    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400;
-  }
-  .badge-pending {
-    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
-  }
-  .badge-rejected {
-    @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400;
-  }
-  .badge-draft {
-    @apply bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400;
-  }
+  .c-yellow { background: var(--color-paper-yellow); color: var(--color-ink); transform: rotate(-2deg); }
+  .c-coral { background: var(--color-paper-coral); color: #fff; transform: rotate(1.5deg); }
+  .c-sky { background: var(--color-paper-sky); color: #0b2a3d; transform: rotate(-1deg); }
+  .c-mint { background: var(--color-paper-mint); color: var(--color-ink); transform: rotate(2deg); }
+  .c-lavender { background: var(--color-paper-lavender); color: #2b1b4a; transform: rotate(-1.5deg); }
 
-  /* ---- Micro-animation hover scale ---- */
-  .hover-scale {
-    @apply transition-all duration-200 hover:scale-[1.02];
+  .btn {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border-none font-bold text-sm transition-all duration-200 cursor-pointer font-work;
+  }
+  .btn:active {
+    transform: translateY(1px) scale(0.98);
+  }
+  .btn-primary {
+    @apply bg-paper-yellow text-ink;
+    box-shadow: 0 4px 0 #b8912b;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 0 #b8912b;
+    transform: translateY(-2px);
+  }
+  .btn-navy {
+    @apply bg-navy text-white;
+    box-shadow: 0 4px 0 var(--color-navy-dark);
+  }
+  .btn-navy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--color-navy-dark);
   }
 }
