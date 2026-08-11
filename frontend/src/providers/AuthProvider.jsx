@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { clearAuthToken, setAuthToken } from '../services/api';
+import API, { clearAuthToken, setAuthToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -10,7 +10,26 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
+        setAuthToken(savedToken);
+        try {
+          const response = await API.get('/auth/me');
+          setUser(response.data.data);
+        } catch (error) {
+          console.error('Failed to fetch user profile on init:', error);
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+
+    initAuth();
+  }, []);
 
   useEffect(() => {
     if (token) {
