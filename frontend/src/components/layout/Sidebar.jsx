@@ -1,12 +1,20 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../providers/AuthProvider';
 
 const Sidebar = () => {
   const location = useLocation();
+  const { user } = useAuth();
   
+  const getDashboardPath = () => {
+    if (user?.role === 'admin') return '/admin/dashboard';
+    if (user?.role === 'panitia') return '/panitia/dashboard';
+    return '/dashboard';
+  };
+
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'Dashboard', path: '/dashboard' }
+    ...(user ? [{ name: 'Dashboard', path: getDashboardPath() }] : [])
   ];
 
   return (
@@ -21,7 +29,7 @@ const Sidebar = () => {
             to={item.path}
             className={`block px-4 py-2 rounded-md transition-colors ${
               location.pathname === item.path 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-blue-600 text-white font-medium' 
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >

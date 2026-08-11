@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import authService from '../services/authService';
+<<<<<<< HEAD
+=======
 import toast from 'react-hot-toast';
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
 
 const Register = () => {
   const navigate = useNavigate();
@@ -10,16 +13,33 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+<<<<<<< HEAD
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!nama || !email || !password || !confirmPassword) {
+      setErrorMsg('Semua kolom wajib diisi');
+=======
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nama || !email || !password || !confirmPassword) {
       toast.error('Semua kolom wajib diisi');
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
       return;
     }
 
     if (password !== confirmPassword) {
+<<<<<<< HEAD
+      setErrorMsg('Konfirmasi password tidak cocok');
+=======
       toast.error('Konfirmasi password tidak cocok');
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
       return;
     }
 
@@ -29,6 +49,18 @@ const Register = () => {
         nama,
         email,
         password,
+<<<<<<< HEAD
+        role: 'mahasiswa'
+      });
+
+      if (response.status === 'success' || response.statusCode === 201) {
+        setSuccessMsg('Registrasi berhasil! Mengalihkan ke halaman login...');
+        setTimeout(() => {
+          navigate('/login');
+        }, 1500);
+      } else {
+        setErrorMsg(response.message || 'Registrasi gagal');
+=======
         role: 'mahasiswa' // Secara default selalu mahasiswa
       });
 
@@ -37,11 +69,16 @@ const Register = () => {
         navigate('/login');
       } else {
         toast.error(response.message || 'Registrasi gagal');
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
       }
     } catch (error) {
       console.error(error);
       const msg = error.response?.data?.message || 'Registrasi gagal. Email mungkin sudah terdaftar.';
+<<<<<<< HEAD
+      setErrorMsg(msg);
+=======
       toast.error(msg);
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
     } finally {
       setLoading(false);
     }
@@ -55,6 +92,21 @@ const Register = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Daftar sebagai Mahasiswa untuk mengikuti event</p>
         </div>
 
+<<<<<<< HEAD
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 text-sm rounded-lg">
+            {errorMsg}
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-600 dark:text-green-400 text-sm rounded-lg">
+            {successMsg}
+          </div>
+        )}
+
+=======
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
@@ -117,12 +169,15 @@ const Register = () => {
             disabled={loading}
             className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
+<<<<<<< HEAD
+=======
             {loading ? (
               <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             ) : null}
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
             {loading ? 'Memproses...' : 'Daftar Sekarang'}
           </button>
         </form>
