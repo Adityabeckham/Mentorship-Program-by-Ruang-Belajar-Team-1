@@ -271,3 +271,69 @@ exports.deleteEvent = async (req, res, next) => {
     next(err);
   }
 };
+
+// 8. PATCH /panitia/events/:id/submit
+exports.submitEventForVerification = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const panitiaId = req.user.id; // Diambil dari JWT Payload via authMiddleware
+
+    // Cari event, pastikan milik panitia aktif & belum di-soft delete
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, title, description, location, event_date, quota, status, created_by')
+      .eq('id', id)
+      .eq('created_by', panitiaId)
+      .is('deleted_at', null)
+      .single();
+
+    // Acceptance Criteria: Hanya panitia pemilik event yang dapat melakukan submit
+    if (findError || !event) {
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan atau Anda tidak memiliki akses ke event ini.',
+      });
+    }
+
+    // Cek apakah status saat ini adalah 'draft' atau 'rejected' (Bisa diajukan ulang jika ditolak)
+    if (event.status !== 'draft' && event.status !== 'rejected') {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: `Hanya event berstatus 'draft' yang dapat diajukan. Status saat ini: '${event.status}'.`,
+      });
+    }
+
+    // Acceptance Criteria: Validasi memastikan field wajib telah diisi lengkap
+    if (!event.title || !event.description || !event.location || !event.event_date || !event.quota) {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: 'Gagal mengajukan event. Informasi event belum lengkap (title, description, location, event_date, dan quota wajib diisi).',
+      });
+    }
+
+    // Acceptance Criteria: Ubah status dari 'draft' menjadi 'pending_verification'
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('events')
+      .update({
+        status: 'pending_verification',
+        updated_at: new Date(),
+      })
+      .eq('id', id)
+      .select('id, title, status, updated_at')
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Event berhasil diajukan untuk diverifikasi oleh admin.',
+      data: updatedEvent,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -48,4 +48,11 @@ router.patch(
   eventController.updateEventStatus
 );
 
+// Submit Event untuk Verifikasi Admin (Khusus Panitia)
+router.patch(
+  '/panitia/events/:id/submit',
+  authorizeRoles('panitia'),
+  eventController.submitEventForVerification
+);
+
 module.exports = router;
