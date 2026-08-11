@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import authService from '../services/authService';
+<<<<<<< HEAD
+=======
+import toast from 'react-hot-toast';
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
 
 const Login = () => {
   const { login } = useAuth();
@@ -9,6 +13,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+<<<<<<< HEAD
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e) => {
@@ -16,6 +21,13 @@ const Login = () => {
     setErrorMsg('');
     if (!email || !password) {
       setErrorMsg('Email dan password wajib diisi');
+=======
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error('Email dan password wajib diisi');
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
       return;
     }
 
@@ -28,6 +40,7 @@ const Login = () => {
           token: response.token,
           user: response.user
         });
+<<<<<<< HEAD
         
         // Redirect berdasarkan role pengguna
         if (response.user.role === 'admin') {
@@ -39,11 +52,26 @@ const Login = () => {
         }
       } else {
         setErrorMsg(response.message || 'Login gagal');
+=======
+        toast.success('Login berhasil! Selamat datang.');
+        // Redirect berdasarkan role
+        if (response.user.role === 'admin' || response.user.role === 'panitia') {
+          navigate('/dashboard');
+        } else {
+          navigate('/');
+        }
+      } else {
+        toast.error(response.message || 'Login gagal');
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
       }
     } catch (error) {
       console.error(error);
       const msg = error.response?.data?.message || 'Email atau password salah';
+<<<<<<< HEAD
       setErrorMsg(msg);
+=======
+      toast.error(msg);
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
     } finally {
       setLoading(false);
     }
@@ -57,12 +85,15 @@ const Login = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Masuk untuk mengakses event kampus</p>
         </div>
 
+<<<<<<< HEAD
         {errorMsg && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 text-sm rounded-lg">
             {errorMsg}
           </div>
         )}
 
+=======
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -97,6 +128,15 @@ const Login = () => {
             disabled={loading}
             className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold rounded-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
+<<<<<<< HEAD
+=======
+            {loading ? (
+              <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : null}
+>>>>>>> 3fff4483fe379362e9c3344eb92908a9efb75191
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
