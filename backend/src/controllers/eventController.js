@@ -8,9 +8,11 @@ exports.getManagedEvents = async (req, res, next) => {
     let query = supabase
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_by, created_at')
-      .is('deleted_at', null) // Filter: Hanya event yang belum di-soft delete
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
+    // Jika Panitia, filter hanya event miliknya.
+    // Jika Admin, ambil seluruh event dari semua panitia.
     if (role === 'panitia') {
       query = query.eq('created_by', userId);
     }
@@ -85,7 +87,7 @@ exports.getPublicEvents = async (req, res, next) => {
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_at', { count: 'exact' })
       .eq('status', 'published')
-      .is('deleted_at', null) // Filter: Hanya event yang aktif
+      .is('deleted_at', null)
       .order('event_date', { ascending: true });
 
     if (search) {
@@ -192,7 +194,6 @@ exports.updateEvent = async (req, res, next) => {
     const panitiaId = req.user.id;
     const { title, description, location, event_date, quota, status } = req.body;
 
-    // Cek keberadaan event & hak akses
     const { data: existingEvent, error: findError } = await supabase
       .from('events')
       .select('id, status')
@@ -209,7 +210,6 @@ exports.updateEvent = async (req, res, next) => {
       });
     }
 
-    // Eksekusi Update
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
@@ -270,17 +270,14 @@ exports.deleteEvent = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-<<<<<<< Updated upstream
-=======
 };
 
 // 8. PATCH /panitia/events/:id/submit
 exports.submitEventForVerification = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const panitiaId = req.user.id; // Diambil dari JWT Payload via authMiddleware
+    const panitiaId = req.user.id;
 
-    // Cari event, pastikan milik panitia aktif & belum di-soft delete
     const { data: event, error: findError } = await supabase
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_by')
@@ -289,7 +286,6 @@ exports.submitEventForVerification = async (req, res, next) => {
       .is('deleted_at', null)
       .single();
 
-    // Acceptance Criteria: Hanya panitia pemilik event yang dapat melakukan submit
     if (findError || !event) {
       return res.status(404).json({
         status: 'fail',
@@ -298,7 +294,6 @@ exports.submitEventForVerification = async (req, res, next) => {
       });
     }
 
-    // Cek apakah status saat ini adalah 'draft' atau 'rejected' (Bisa diajukan ulang jika ditolak)
     if (event.status !== 'draft' && event.status !== 'rejected') {
       return res.status(400).json({
         status: 'fail',
@@ -307,7 +302,6 @@ exports.submitEventForVerification = async (req, res, next) => {
       });
     }
 
-    // Acceptance Criteria: Validasi memastikan field wajib telah diisi lengkap
     if (!event.title || !event.description || !event.location || !event.event_date || !event.quota) {
       return res.status(400).json({
         status: 'fail',
@@ -316,7 +310,6 @@ exports.submitEventForVerification = async (req, res, next) => {
       });
     }
 
-    // Acceptance Criteria: Ubah status dari 'draft' menjadi 'pending_verification'
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
@@ -343,7 +336,7 @@ exports.submitEventForVerification = async (req, res, next) => {
 // 9. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
 exports.getPendingEventsForAdmin = async (req, res, next) => {
   try {
-    const { status } = req.query; // Opsional: ?status=pending_verification / ?status=rejected dll
+    const { status } = req.query;
 
     let query = supabase
       .from('events')
@@ -367,7 +360,6 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    // Secara default, tampilkan event yang butuh verifikasi ('pending_verification')
     if (status) {
       query = query.eq('status', status);
     } else {
@@ -392,9 +384,8 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
 exports.verifyEventByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { action, rejection_reason } = req.body; // action: 'approve' atau 'reject'
+    const { action, rejection_reason } = req.body;
 
-    // Validasi input action
     if (!action || !['approve', 'reject'].includes(action)) {
       return res.status(400).json({
         status: 'fail',
@@ -403,7 +394,6 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       });
     }
 
-    // Cek keberadaan event & pastikan statusnya 'pending_verification'
     const { data: event, error: findError } = await supabase
       .from('events')
       .select('id, title, status')
@@ -419,14 +409,12 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       });
     }
 
-    // Tentukan status baru & alasan penolakan
     let newStatus = '';
     let reasonToSave = null;
 
     if (action === 'approve') {
       newStatus = 'published';
     } else if (action === 'reject') {
-      // Acceptance Criteria: Jika reject, rejection_reason wajib diisi
       if (!rejection_reason || rejection_reason.trim() === '') {
         return res.status(400).json({
           status: 'fail',
@@ -438,7 +426,6 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       reasonToSave = rejection_reason;
     }
 
-    // Update status event 
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
@@ -461,5 +448,4 @@ exports.verifyEventByAdmin = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
->>>>>>> Stashed changes
 };

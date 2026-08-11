@@ -48,8 +48,6 @@ router.patch(
   eventController.updateEventStatus
 );
 
-<<<<<<< Updated upstream
-=======
 // Submit Event untuk Verifikasi Admin (Khusus Panitia)
 router.patch(
   '/panitia/events/:id/submit',
@@ -71,5 +69,4 @@ router.patch(
   eventController.verifyEventByAdmin
 );
 
->>>>>>> Stashed changes
 module.exports = router;
