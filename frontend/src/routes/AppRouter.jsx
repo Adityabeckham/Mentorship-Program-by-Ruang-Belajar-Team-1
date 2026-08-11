@@ -4,6 +4,8 @@ import MainLayout from '../components/layout/MainLayout';
 import Home from '../pages/Home';
 import Dashboard from '../pages/Dashboard';
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminVerify from '../pages/admin/AdminVerify';
+import AdminPanitia from '../pages/admin/AdminPanitia';
 import PanitiaDashboard from '../pages/panitia/PanitiaDashboard';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
@@ -56,6 +58,8 @@ const AppRouter = () => {
             {/* Admin-only Routes */}
             <Route element={<RoleGuard allowedRoles={['admin']} />}>
               <Route path="admin/dashboard" element={<AdminDashboard />} />
+              <Route path="admin/verify" element={<AdminVerify />} />
+              <Route path="admin/panitia" element={<AdminPanitia />} />
             </Route>
 
             {/* Panitia-only Routes */}
