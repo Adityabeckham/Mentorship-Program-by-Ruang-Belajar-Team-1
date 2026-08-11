@@ -1,8 +1,6 @@
-# EventHub-Kampus-Kanban-FULL (1)
-
 # EventHub Kampus - Kanban Task Management (Updated v2: Role Panitia & Verifikasi Admin)
 
-> Dokumen ini diperbarui berdasarkan revisi spesifikasi arsitektur **EventHub-Kampus-ERD-API-Contract-v2.md** (Sprint 2 - Revisi Role Panitia & Verifikasi Event).
+> Dokumen ini diperbarui berdasarkan revisi spesifikasi arsitektur **EventHub-Kampus-ERD-API-Contract-v2.md** dan acuan Design System UI Prototype **eventhub-kampus-prototype.html**.
 
 ## Ringkasan Proyek
 
@@ -32,6 +30,30 @@ Platform manajemen event kampus yang mendukung 3 tingkatan role pengguna:
 
 ---
 
+# 🎨 Standar Design System & Acceptance Criteria Slicing UI
+
+Seluruh pengerjaan **Task Slicing UI (Frontend)** WAJIB mengikuti acuan visual dan spesifikasi **[eventhub-kampus-prototype.html](file:///d:/Mentorshi-Program-by-Ruang-Belajar-Team-1/eventhub-kampus-prototype.html)** dengan standar berikut:
+
+### 🌟 1. Palette Warna & Aesthetics
+- **Primary Gradients:** Indigo to Blue (`bg-gradient-to-tr from-indigo-600 to-blue-600`).
+- **Dark Mode Support:** Seluruh komponen wajib mendukung Dark Mode (`dark:bg-gray-900`, `dark:bg-gray-800`, `dark:border-gray-700`, `dark:text-white`).
+- **Card Containers:** Menggunakan sudut tumpul modern (`rounded-2xl` / `rounded-xl`) dengan shadow halus (`shadow-xl` / `shadow-sm`).
+- **Glassmorphism:** Efek latar belakang transparan Blur (`backdrop-blur-md bg-white/80 dark:bg-gray-900/80`).
+
+### 🏷️ 2. Status Badge & Component System
+- **Status Event Badges:**
+  - `published` ➔ Green Pill (`bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400`).
+  - `pending_verification` ➔ Amber Pill (`bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400`).
+  - `rejected` ➔ Red Pill (`bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`).
+  - `draft` ➔ Gray Pill (`bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400`).
+
+### ⚡ 3. Micro-animations & Responsiveness
+- Hover zoom & scale transitions pada Card & Button (`transition-all duration-200 hover:scale-[1.02]`).
+- Loading Skeleton & Spinner pada interaksi fetch API data.
+- Layout responsive 100% dari skrin Mobile (375px) hingga Desktop (1440px).
+
+---
+
 # Kanban Task Board Lengkap
 
 |No|Sprint|Fase|Task|Role|Assignee|Priority|Status|
@@ -41,53 +63,53 @@ Platform manajemen event kampus yang mendukung 3 tingkatan role pengguna:
 |3|Sprint 1|Planning|Setup GitHub Repository & Project Board|Team Lead|Aditya (`@Adityabeckham`)|High|Done|
 |4|Sprint 1|Planning|Setup Lark Workspace|Team Lead|Aditya (`@Adityabeckham`)|High|Done|
 |5|Sprint 2|Analysis & Design|Finalisasi PRD & Functional Requirement|Team Lead|Aditya (`@Adityabeckham`)|High|Done|
-|6|Sprint 2|Analysis & Design|ERD Supabase (Users 3-Roles, Events Status Flow, Registrations, Attendance)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|7|Sprint 2|Analysis & Design|API Contract Modul Auth & Kelola Akun Panitia (Admin)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|8|Sprint 2|Analysis & Design|API Contract Modul Event (Panitia CRUD & Admin Verifikasi)|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|9|Sprint 2|Analysis & Design|API Contract Registrasi, Kehadiran & Stats Dashboard (Panitia & Admin)|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Backlog|
-|10|Sprint 2|Analysis & Design|Wireframe UI Auth & Event Catalog (Mahasiswa)|UI/UX|Reza (`@Muhammad-Reza351119`)|High|Backlog|
-|11|Sprint 2|Analysis & Design|Wireframe UI Dashboard Panitia & Form Event Submission|UI/UX|Reza (`@Muhammad-Reza351119`)|High|Backlog|
-|12|Sprint 2|Analysis & Design|Wireframe UI Dashboard Admin, Verifikasi Event & Kelola Akun Panitia|UI/UX|Reza (`@Muhammad-Reza351119`)|High|Backlog|
-|13|Sprint 2|Analysis & Design|Boilerplate Frontend React + Tailwind|Frontend|Afra (`@Afrawwalun`)|Medium|Backlog|
-|14|Sprint 2|Analysis & Design|Setup Router, Layout & Theme Provider FE|Frontend|Amirrul (`@Amirrul24`)|Medium|Backlog|
-|15|Sprint 2|Analysis & Design|Setup Global State & API Service Base|Frontend|Asad (`@asadmh59`)|Medium|Backlog|
-|16|Sprint 2|Analysis & Design|Boilerplate Backend Express.js & Middleware Core|Backend|Salsa (`@salsanrm`)|Medium|Backlog|
-|17|Sprint 3|Core Dev I|Setup Database Supabase & Migration Schema (v2 Roles & Enums)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|18|Sprint 3|Core Dev I|Setup RLS Policy Supabase (Users, Events, Registrations, Attendance)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|19|Sprint 3|Core Dev I|Endpoint Register Mahasiswa & Login JWT (All Roles)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|20|Sprint 3|Core Dev I|Endpoint GET /auth/me & Role Guard Middleware|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|21|Sprint 3|Core Dev I|Setup Rate Limiting & Security Headers Auth|Backend|Hazril (`@mohdhazril6168-design`)|Medium|Backlog|
-|22|Sprint 3|Core Dev I|UI Login & Register Mahasiswa + Integrasi API Auth|Frontend|Afra (`@Afrawwalun`)|High|Backlog|
-|23|Sprint 3|Core Dev I|Setup Protected Route & Role-based Guard FE|Frontend|Amirrul (`@Amirrul24`)|Medium|Backlog|
-|24|Sprint 3|Core Dev I|Axios Interceptor & Token Refresh Service FE|Frontend|Asad (`@asadmh59`)|Medium|Backlog|
-|25|Sprint 3|Core Dev I|Testing Endpoint Auth & Security Review Auth|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Backlog|
-|26|Sprint 3|Core Dev I|Code Review Backend Sprint 3|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Backlog|
-|27|Sprint 4|Core Dev II|Endpoint Public Events (GET /events, GET /events/:id - Only Published)|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|28|Sprint 4|Core Dev II|Endpoint Registrasi Peserta & GET /registrations/me|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|29|Sprint 4|Core Dev II|Endpoint CRUD Event Panitia (POST draft, PUT edit, DELETE soft delete)|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|30|Sprint 4|Core Dev II|Endpoint Submit Event Panitia (PATCH /events/:id/submit -> pending_verification)|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|31|Sprint 4|Core Dev II|Endpoint GET /admin/events (Scope Panitia Dashboard)|Backend|Salsa (`@salsanrm`)|Medium|Backlog|
-|32|Sprint 4|Core Dev II|Endpoint Stats Dashboard Panitia (GET /panitia/dashboard/stats)|Backend|Salsa (`@salsanrm`)|Medium|Backlog|
-|33|Sprint 4|Core Dev II|UI Katalog & Detail Event (Mahasiswa)|Frontend|Amirrul (`@Amirrul24`)|High|Backlog|
-|34|Sprint 4|Core Dev II|UI Registrasi Event & Riwayat Pendaftaran (Mahasiswa)|Frontend|Amirrul (`@Amirrul24`)|High|Backlog|
-|35|Sprint 4|Core Dev II|UI Dashboard Panitia (Statistik & List Event)|Frontend|Asad (`@asadmh59`)|High|Backlog|
-|36|Sprint 4|Core Dev II|UI Form Buat & Edit Event (Panitia)|Frontend|Asad (`@asadmh59`)|High|Backlog|
-|37|Sprint 4|Core Dev II|Code Review & Merge PR Sprint 4|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Backlog|
-|38|Sprint 4|Core Dev II|Daily Progress Sync FE-BE Sprint 4|Full Stack|Ahmad (`@AhmadKurnia13`)|Low|Backlog|
-|39|Sprint 5|Core Dev III|Endpoint Admin Verifikasi Event (GET /admin/events & PATCH /admin/events/:id/verify)|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|40|Sprint 5|Core Dev III|Endpoint Admin Kelola Akun Panitia (POST/GET/PUT /admin/panitia)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|41|Sprint 5|Core Dev III|Endpoint Stats Dashboard Admin Platform (GET /admin/dashboard/stats)|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|42|Sprint 5|Core Dev III|Endpoint Kehadiran Peserta (GET /events/:id/participants & PATCH /attendance/:registration_id)|Full Stack|Ahmad (`@AhmadKurnia13`)|High|Backlog|
-|43|Sprint 5|Core Dev III|UI Dashboard Admin Platform & Stats Global|Frontend|Afra (`@Afrawwalun`)|High|Backlog|
-|44|Sprint 5|Core Dev III|UI Verifikasi Event Admin (Review, Approve, Reject + Reason Modal)|Frontend|Afra (`@Afrawwalun`)|High|Backlog|
-|45|Sprint 5|Core Dev III|UI Manajemen Akun Panitia Admin (Form Tambah Akun Panitia & List Orgas)|Frontend|Afra (`@Afrawwalun`)|High|Backlog|
-|46|Sprint 5|Core Dev III|UI Marking Kehadiran Peserta & Table Peserta (Panitia)|Frontend|Asad (`@asadmh59`)|High|Backlog|
-|47|Sprint 5|Core Dev III|Validasi Input FE (Sanitasi Rejection Reason, Form Validations)|Frontend|Amirrul (`@Amirrul24`)|Medium|Backlog|
-|48|Sprint 5|Core Dev III|Validasi Input BE & Sanitasi Input (HTML/Script Tag Removal)|Backend|Salsa (`@salsanrm`)|Medium|Backlog|
-|49|Sprint 5|Core Dev III|Ownership Check Event & Attendance Security Validation|Backend|Hazril (`@mohdhazril6168-design`)|High|Backlog|
-|50|Sprint 5|Core Dev III|Transaction Lock Kuota Registrasi Event|Backend|Salsa (`@salsanrm`)|High|Backlog|
-|51|Sprint 5|Core Dev III|Optimasi Query Database Indexing (idx_events_status_date, idx_registrations_event_id)|Backend|Hazril (`@mohdhazril6168-design`)|Low|Backlog|
-|52|Sprint 5|Core Dev III|Optimasi & Cleanup State FE|Frontend|Amirrul (`@Amirrul24`)|Low|Backlog|
+|6|Sprint 2|Analysis & Design|ERD Supabase (Users 3-Roles, Events Status Flow, Registrations, Attendance)|Backend|Salsa (`@salsanrm`)|High|Done|
+|7|Sprint 2|Analysis & Design|API Contract Modul Auth & Kelola Akun Panitia (Admin)|Backend|Salsa (`@salsanrm`)|High|Done|
+|8|Sprint 2|Analysis & Design|API Contract Modul Event (Panitia CRUD & Admin Verifikasi)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|9|Sprint 2|Analysis & Design|API Contract Registrasi, Kehadiran & Stats Dashboard (Panitia & Admin)|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Done|
+|10|Sprint 2|Analysis & Design|Wireframe UI Auth & Event Catalog (Mahasiswa)|UI/UX|Reza (`@Muhammad-Reza351119`)|High|Done|
+|11|Sprint 2|Analysis & Design|Wireframe UI Dashboard Panitia & Form Event Submission|UI/UX|Reza (`@Muhammad-Reza351119`)|High|Done|
+|12|Sprint 2|Analysis & Design|Wireframe UI Dashboard Admin, Verifikasi Event & Kelola Akun Panitia|UI/UX|Reza (`@Muhammad-Reza351119`)|High|Done|
+|13|Sprint 2|Analysis & Design|Boilerplate Frontend React + Tailwind|Frontend|Afra (`@Afrawwalun`)|Medium|Done|
+|14|Sprint 2|Analysis & Design|Setup Router, Layout & Theme Provider FE|Frontend|Amirrul (`@Amirrul24`)|Medium|Done|
+|15|Sprint 2|Analysis & Design|Setup Global State & API Service Base|Frontend|Asad (`@asadmh59`)|Medium|Done|
+|16|Sprint 2|Analysis & Design|Boilerplate Backend Express.js & Middleware Core|Backend|Salsa (`@salsanrm`)|Medium|Done|
+|17|Sprint 3|Core Dev I|Setup Database Supabase & Migration Schema (v2 Roles & Enums)|Backend|Salsa (`@salsanrm`)|High|Done|
+|18|Sprint 3|Core Dev I|Setup RLS Policy Supabase (Users, Events, Registrations, Attendance)|Backend|Salsa (`@salsanrm`)|High|Done|
+|19|Sprint 3|Core Dev I|Endpoint Register Mahasiswa & Login JWT (All Roles)|Backend|Salsa (`@salsanrm`)|High|Done|
+|20|Sprint 3|Core Dev I|Endpoint GET /auth/me & Role Guard Middleware|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|21|Sprint 3|Core Dev I|Setup Rate Limiting & Security Headers Auth|Backend|Hazril (`@mohdhazril6168-design`)|Medium|Done|
+|22|Sprint 3|Core Dev I|UI Login & Register Mahasiswa + Integrasi API Auth (Acquires Design System Prototype)|Frontend|Afra (`@Afrawwalun`)|High|Done|
+|23|Sprint 3|Core Dev I|Setup Protected Route & Role-based Guard FE|Frontend|Amirrul (`@Amirrul24`)|Medium|Done|
+|24|Sprint 3|Core Dev I|Axios Interceptor & Token Refresh Service FE|Frontend|Asad (`@asadmh59`)|Medium|Done|
+|25|Sprint 3|Core Dev I|Testing Endpoint Auth & Security Review Auth|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Done|
+|26|Sprint 3|Core Dev I|Code Review Backend Sprint 3|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|Done|
+|27|Sprint 4|Core Dev II|Endpoint Public Events (GET /events, GET /events/:id - Only Published)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|28|Sprint 4|Core Dev II|Endpoint Registrasi Peserta & GET /registrations/me|Backend|Salsa (`@salsanrm`)|High|Done|
+|29|Sprint 4|Core Dev II|Endpoint CRUD Event Panitia (POST draft, PUT edit, DELETE soft delete)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|30|Sprint 4|Core Dev II|Endpoint Submit Event Panitia (PATCH /events/:id/submit -> pending_verification)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|31|Sprint 4|Core Dev II|Endpoint GET /admin/events (Scope Panitia Dashboard)|Backend|Salsa (`@salsanrm`)|Medium|Done|
+|32|Sprint 4|Core Dev II|Endpoint Stats Dashboard Panitia (GET /panitia/dashboard/stats)|Backend|Salsa (`@salsanrm`)|Medium|Done|
+|33|Sprint 4|Core Dev II|UI Katalog & Detail Event (Mahasiswa) - Design System Prototype|Frontend|Amirrul (`@Amirrul24`)|High|In Progress|
+|34|Sprint 4|Core Dev II|UI Registrasi Event & Riwayat Pendaftaran (Mahasiswa) - Design System Prototype|Frontend|Amirrul (`@Amirrul24`)|High|In Progress|
+|35|Sprint 4|Core Dev II|UI Dashboard Panitia (Statistik & List Event) - Design System Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
+|36|Sprint 4|Core Dev II|UI Form Buat & Edit Event (Panitia) - Design System Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
+|37|Sprint 4|Core Dev II|Code Review & Merge PR Sprint 4|Full Stack|Ahmad (`@AhmadKurnia13`)|Medium|In Progress|
+|38|Sprint 4|Core Dev II|Daily Progress Sync FE-BE Sprint 4|Full Stack|Ahmad (`@AhmadKurnia13`)|Low|In Progress|
+|39|Sprint 5|Core Dev III|Endpoint Admin Verifikasi Event (GET /admin/events & PATCH /admin/events/:id/verify)|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|40|Sprint 5|Core Dev III|Endpoint Admin Kelola Akun Panitia (POST/GET/PUT /admin/panitia)|Backend|Salsa (`@salsanrm`)|High|Done|
+|41|Sprint 5|Core Dev III|Endpoint Stats Dashboard Admin Platform (GET /admin/dashboard/stats)|Backend|Salsa (`@salsanrm`)|High|Done|
+|42|Sprint 5|Core Dev III|Endpoint Kehadiran Peserta (GET /events/:id/participants & PATCH /attendance/:registration_id)|Full Stack|Ahmad (`@AhmadKurnia13`)|High|Done|
+|43|Sprint 5|Core Dev III|UI Dashboard Admin Platform & Stats Global - Design System Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
+|44|Sprint 5|Core Dev III|UI Verifikasi Event Admin (Review, Approve, Reject + Reason Modal) - Design System Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
+|45|Sprint 5|Core Dev III|UI Manajemen Akun Panitia Admin (Form Tambah Akun Panitia & List Orgas) - Design System Prototype|Frontend|Afra (`@Afrawwalun`)|High|In Progress|
+|46|Sprint 5|Core Dev III|UI Marking Kehadiran Peserta & Table Peserta (Panitia) - Design System Prototype|Frontend|Asad (`@asadmh59`)|High|In Progress|
+|47|Sprint 5|Core Dev III|Validasi Input FE (Sanitasi Rejection Reason, Form Validations)|Frontend|Amirrul (`@Amirrul24`)|Medium|Done|
+|48|Sprint 5|Core Dev III|Validasi Input BE & Sanitasi Input (HTML/Script Tag Removal)|Backend|Salsa (`@salsanrm`)|Medium|Done|
+|49|Sprint 5|Core Dev III|Ownership Check Event & Attendance Security Validation|Backend|Hazril (`@mohdhazril6168-design`)|High|Done|
+|50|Sprint 5|Core Dev III|Transaction Lock Kuota Registrasi Event|Backend|Salsa (`@salsanrm`)|High|Done|
+|51|Sprint 5|Core Dev III|Optimasi Query Database Indexing (idx_events_status_date, idx_registrations_event_id)|Backend|Hazril (`@mohdhazril6168-design`)|Low|Done|
+|52|Sprint 5|Core Dev III|Optimasi & Cleanup State FE|Frontend|Amirrul (`@Amirrul24`)|Low|In Progress|
 |53|Sprint 6|Testing|Integration Testing FE-BE (Mahasiswa -> Panitia -> Admin Flow)|Full Stack|Ahmad (`@AhmadKurnia13`)|High|Backlog|
 |54|Sprint 6|Testing|End-to-End Testing (Role-based access & verification workflow)|Frontend|Asad (`@asadmh59`)|High|Backlog|
 |55|Sprint 6|Testing|Bug Fixing Frontend|Frontend|Afra (`@Afrawwalun`)|High|Backlog|
@@ -133,52 +155,12 @@ git commit -m "feat: add feature"
 git push origin nama-branch
 ```
 
-## Design Task
-
-- Dikerjakan di Figma.
-- Update status melalui Lark.
-- Review melalui komentar Figma.
-- Approve → Done.
-
-## Non-Teknis
-
-- Dikerjakan di Lark Docs / Google Docs.
-- Review oleh Team Lead.
-- Untuk README, ERD, API Contract final tetap dibuat PR ke repository.
-
----
-
-# Tech Stack
-
-## Frontend
-
-- React
-- Tailwind CSS
-- React Router
-- Axios / Fetch
-
-## Backend
-
-- Express.js
-- JWT
-- bcrypt
-- dotenv
-- cors
-
-## Database
-
-- Supabase (PostgreSQL with Row Level Security - RLS)
-
-## Deployment
-
-- Railway / Render
-- Vercel / Netlify
-
 ---
 
 # Status Project
 
-✅ Sprint 1 selesai
-✅ Finalisasi PRD & ERD/API Contract v2 selesai
-⏳ Sprint 2 sedang berjalan (Analysis & Design v2)
-🎯 Target akhir: Demo Day Sprint 8
+✅ Sprint 1 selesai  
+✅ Finalisasi PRD & ERD/API Contract v2 selesai  
+✅ Sprint 2, 3, 4 Core Backend & Auth Core Selesai  
+⏳ Sprint 4 & 5 Slicing UI (Frontend) sedang berlangsung (Acuan Design System: `eventhub-kampus-prototype.html`)  
+🎯 Target akhir: Demo Day Sprint 8  
