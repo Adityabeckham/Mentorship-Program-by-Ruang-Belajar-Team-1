@@ -192,20 +192,28 @@ exports.updateEvent = async (req, res, next) => {
     const panitiaId = req.user.id;
     const { title, description, location, event_date, quota, status } = req.body;
 
-    // Cek keberadaan event & hak akses
-    const { data: existingEvent, error: findError } = await supabase
+    // Cek dulu apakah event ada di database
+    const { data: event, error: findError } = await supabase
       .from('events')
-      .select('id, status')
+      .select('id, created_by')
       .eq('id', id)
-      .eq('created_by', panitiaId)
       .is('deleted_at', null)
       .single();
 
-    if (findError || !existingEvent) {
+    if (findError || !event) {
       return res.status(404).json({
         status: 'fail',
         statusCode: 404,
-        message: 'Event tidak ditemukan atau Anda tidak memiliki akses.',
+        message: 'Event tidak ditemukan.',
+      });
+    }
+
+    // Jika user adalah Panitia dan bukan pembuat event -> 403 Forbidden
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return res.status(403).json({
+        status: 'fail',
+        statusCode: 403,
+        message: 'Akses ditolak. Anda tidak memiliki izin untuk mengedit event milik panitia lain.',
       });
     }
 
@@ -244,22 +252,37 @@ exports.deleteEvent = async (req, res, next) => {
     const { id } = req.params;
     const panitiaId = req.user.id;
 
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, created_by')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
+
+    if (findError || !event) {
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan.',
+      });
+    }
+
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return res.status(403).json({
+        status: 'fail',
+        statusCode: 403,
+        message: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus event milik panitia lain.',
+      });
+    }
+
     const { data: deletedEvent, error } = await supabase
       .from('events')
       .update({ deleted_at: new Date() })
       .eq('id', id)
-      .eq('created_by', panitiaId)
-      .is('deleted_at', null)
       .select('id, title, deleted_at')
       .single();
 
-    if (error || !deletedEvent) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan atau gagal dihapus.',
-      });
-    }
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
@@ -270,35 +293,37 @@ exports.deleteEvent = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-<<<<<<< Updated upstream
-=======
 };
 
 // 8. PATCH /panitia/events/:id/submit
 exports.submitEventForVerification = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const panitiaId = req.user.id; // Diambil dari JWT Payload via authMiddleware
+    const panitiaId = req.user.id;
 
-    // Cari event, pastikan milik panitia aktif & belum di-soft delete
     const { data: event, error: findError } = await supabase
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_by')
       .eq('id', id)
-      .eq('created_by', panitiaId)
       .is('deleted_at', null)
       .single();
 
-    // Acceptance Criteria: Hanya panitia pemilik event yang dapat melakukan submit
     if (findError || !event) {
       return res.status(404).json({
         status: 'fail',
         statusCode: 404,
-        message: 'Event tidak ditemukan atau Anda tidak memiliki akses ke event ini.',
+        message: 'Event tidak ditemukan.',
       });
     }
 
-    // Cek apakah status saat ini adalah 'draft' atau 'rejected' (Bisa diajukan ulang jika ditolak)
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return res.status(403).json({
+        status: 'fail',
+        statusCode: 403,
+        message: 'Akses ditolak. Anda tidak memiliki izin untuk mengajukan event milik panitia lain.',
+      });
+    }
+
     if (event.status !== 'draft' && event.status !== 'rejected') {
       return res.status(400).json({
         status: 'fail',
@@ -307,16 +332,14 @@ exports.submitEventForVerification = async (req, res, next) => {
       });
     }
 
-    // Acceptance Criteria: Validasi memastikan field wajib telah diisi lengkap
     if (!event.title || !event.description || !event.location || !event.event_date || !event.quota) {
       return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: 'Gagal mengajukan event. Informasi event belum lengkap (title, description, location, event_date, dan quota wajib diisi).',
+        message: 'Gagal mengajukan event. Informasi event belum lengkap.',
       });
     }
 
-    // Acceptance Criteria: Ubah status dari 'draft' menjadi 'pending_verification'
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
@@ -461,5 +484,5 @@ exports.verifyEventByAdmin = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
->>>>>>> Stashed changes
+
 };

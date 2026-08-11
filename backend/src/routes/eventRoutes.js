@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { createEventValidation } = require('../validators/eventValidators');
+const { verifyEventOwnership } = require('../utils/authorizeOwnership');
 
 // Public
 router.get('/events', eventController.getPublicEvents);
@@ -48,8 +49,7 @@ router.patch(
   eventController.updateEventStatus
 );
 
-<<<<<<< Updated upstream
-=======
+
 // Submit Event untuk Verifikasi Admin (Khusus Panitia)
 router.patch(
   '/panitia/events/:id/submit',
@@ -71,5 +71,4 @@ router.patch(
   eventController.verifyEventByAdmin
 );
 
->>>>>>> Stashed changes
 module.exports = router;
