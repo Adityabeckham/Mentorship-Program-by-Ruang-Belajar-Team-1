@@ -2,9 +2,45 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Base styles for EventHub Kampus */
+/* ================================================================
+   EventHub Kampus — Global Design System
+   Aligned with Standard Acceptance Criteria (Team Lead Feedback)
+   ================================================================ */
+
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased transition-colors duration-200;
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white antialiased transition-colors duration-200;
+    font-family: 'Inter', 'Work Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* ---- Gradient Primary ---- */
+  .gradient-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  }
+
+  /* ---- Glassmorphism Card ---- */
+  .glass-card {
+    @apply backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border border-white/20 dark:border-gray-800/60;
+  }
+
+  /* ---- Status Badge System ---- */
+  .badge-published {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400;
+  }
+  .badge-pending {
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
+  }
+  .badge-rejected {
+    @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400;
+  }
+  .badge-draft {
+    @apply bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400;
+  }
+
+  /* ---- Micro-animation hover scale ---- */
+  .hover-scale {
+    @apply transition-all duration-200 hover:scale-[1.02];
   }
 }
