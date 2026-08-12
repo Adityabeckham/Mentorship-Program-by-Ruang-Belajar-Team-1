@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../../providers/AuthProvider';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
@@ -16,8 +16,8 @@ const eventSchema = yup.object().shape({
 
 const INITIAL_EVENTS = [
   { id: 'p-1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026, 09:00', status: 'published', peserta: 98, quota: 100, category: 'Technology', speaker: 'Budi Rahardjo' },
-  { id: 'p-2', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek' },
-  { id: 'p-3', title: 'Workshop Android App Development with Kotlin', date: '10 Sep 2026, 13:00', status: 'pending_verification', peserta: 0, quota: 50, category: 'Technology', speaker: 'Mobile Lead Engineer' },
+  { id: 'p-2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', status: 'pending_verification', peserta: 0, quota: 80, category: 'Technology', speaker: 'Dr. Eng. Ir. Hendra' },
+  { id: 'p-3', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek' },
 ];
 
 const PanitiaDashboard = () => {
@@ -25,7 +25,7 @@ const PanitiaDashboard = () => {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Form states
+  // Form States
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Technology');
   const [speaker, setSpeaker] = useState('');
@@ -35,14 +35,14 @@ const PanitiaDashboard = () => {
   const [desc, setDesc] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const stats = [
+  const stats = useMemo(() => [
     { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
     { num: String(events.filter(e => e.status === 'pending_verification').length), lbl: 'Pending Verifikasi', accent: 'amber' },
     { num: String(events.filter(e => e.status === 'published').length), lbl: 'Event Published', accent: 'mint' },
     { num: String(events.filter(e => e.status === 'rejected').length), lbl: 'Event Ditolak', accent: 'coral' },
-  ];
+  ], [events]);
 
-  const handleCreateEvent = async (e) => {
+  const handleCreateEvent = useCallback(async (e) => {
     e.preventDefault();
     setFieldErrors({});
 
@@ -75,7 +75,7 @@ const PanitiaDashboard = () => {
       desc: DOMPurify.sanitize(desc),
     };
 
-    setEvents([newEvent, ...events]);
+    setEvents(prev => [newEvent, ...prev]);
     toast.success('Draft event berhasil diajukan! Menunggu verifikasi dari Admin Platform.');
     setShowCreateModal(false);
     setTitle('');
@@ -83,29 +83,29 @@ const PanitiaDashboard = () => {
     setLocation('');
     setDate('');
     setDesc('');
-  };
+  }, [title, category, speaker, quota, location, date, desc]);
 
   return (
     <div className="page-fade">
-      {/* Title */}
+      {/* Title Header */}
       <div className="section-title">
-        <span className="eyebrow">Statistik Organisasi • {user?.nama || 'Panitia'}</span>
-        <h2 style={{ color: '#fff' }}>Dashboard Panitia Organisasi</h2>
+        <span className="eyebrow">Dashboard Panitia Penyelenggara</span>
+        <h2 style={{ color: '#fff' }}>Kelola Event Organisasi Saya</h2>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Cards */}
       <div className="stat-grid">
-        {stats.map((s) => (
-          <div key={s.lbl} className={`stat-card ${s.accent}`}>
+        {stats.map((s, i) => (
+          <div key={i} className={`stat-card ${s.accent}`}>
             <div className="num">{s.num}</div>
             <div className="lbl">{s.lbl}</div>
           </div>
         ))}
       </div>
 
-      {/* Events Table Card */}
+      {/* Main Table Card */}
       <div className="card">
-        <div className="toolbar">
+        <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h3 style={{ fontSize: '19px', margin: 0 }}>Ringkasan Event Milik Organisasi Saya</h3>
             <p style={{ fontSize: '12.5px', color: '#8a7355', margin: '2px 0 0' }}>

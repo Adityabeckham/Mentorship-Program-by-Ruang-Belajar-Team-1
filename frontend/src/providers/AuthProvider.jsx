@@ -21,7 +21,6 @@ export const AuthProvider = ({ children }) => {
           const response = await API.get('/auth/me');
           setUser(response.data.data);
         } catch (error) {
-          console.error('Failed to fetch user profile on init:', error);
           logout();
         }
       }

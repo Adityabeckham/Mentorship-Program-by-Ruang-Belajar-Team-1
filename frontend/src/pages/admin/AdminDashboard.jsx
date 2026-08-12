@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -14,27 +14,25 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState(INITIAL_EVENTS);
 
-  const pendingCount = events.filter(e => e.status === 'pending_verification').length;
-  const activeCount = events.filter(e => e.status === 'published').length;
+  const pendingCount = useMemo(() => events.filter(e => e.status === 'pending_verification').length, [events]);
+  const activeCount = useMemo(() => events.filter(e => e.status === 'published').length, [events]);
 
-  // Summary cards required by Acceptance Criteria:
-  // (Total Mahasiswa, Total Panitia, Event Active, Pending Approval)
-  const summaryCards = [
+  const summaryCards = useMemo(() => [
     { id: 'mahasiswa', num: '1,280', lbl: 'Total Mahasiswa', sub: 'Terdaftar Aktif', accent: 'mint', icon: '🎓' },
     { id: 'panitia', num: '12', lbl: 'Total Panitia', sub: 'BEM, Himpunan & UKM', accent: 'purple', icon: '👥' },
     { id: 'active', num: String(activeCount), lbl: 'Event Active', sub: 'Published di Papan Event', accent: 'navy', icon: '🌟' },
     { id: 'pending', num: String(pendingCount), lbl: 'Pending Approval', sub: 'Perlu Verifikasi Admin', accent: 'amber', icon: '⏳' },
-  ];
+  ], [activeCount, pendingCount]);
 
-  const handleApprove = (id) => {
+  const handleApprove = useCallback((id) => {
     setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'published' } : ev));
     toast.success('Event berhasil disetujui & dipublikasikan ke Papan Event!');
-  };
+  }, []);
 
-  const handleReject = (id) => {
+  const handleReject = useCallback((id) => {
     setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'rejected' } : ev));
     toast.error('Event telah ditolak.');
-  };
+  }, []);
 
   return (
     <div className="page-fade">

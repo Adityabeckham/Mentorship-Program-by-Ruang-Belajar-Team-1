@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
 import DOMPurify from 'dompurify';
@@ -30,13 +30,15 @@ const AdminPanitia = () => {
   const [formPic, setFormPic] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const filteredList = panitiaList.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.pic.toLowerCase().includes(search.toLowerCase()) ||
-    p.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredList = useMemo(() => {
+    return panitiaList.filter(p =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.pic.toLowerCase().includes(search.toLowerCase()) ||
+      p.email.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [panitiaList, search]);
 
-  const toggleStatus = (id) => {
+  const toggleStatus = useCallback((id) => {
     setPanitiaList(prev => prev.map(p => {
       if (p.id === id) {
         const nextStatus = p.status === 'active' ? 'inactive' : 'active';
@@ -45,9 +47,9 @@ const AdminPanitia = () => {
       }
       return p;
     }));
-  };
+  }, []);
 
-  const handleAddPanitia = async (e) => {
+  const handleAddPanitia = useCallback(async (e) => {
     e.preventDefault();
     setFieldErrors({});
     
@@ -76,13 +78,13 @@ const AdminPanitia = () => {
       totalEvents: 0,
       status: 'active',
     };
-    setPanitiaList([newEntry, ...panitiaList]);
+    setPanitiaList(prev => [newEntry, ...prev]);
     toast.success(`Akun panitia baru '${formName}' berhasil dibuat!`);
     setShowAddModal(false);
     setFormName('');
     setFormEmail('');
     setFormPic('');
-  };
+  }, [formName, formEmail, formPic, formType]);
 
   return (
     <div className="page-fade">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import DOMPurify from 'dompurify';
 
@@ -16,27 +16,27 @@ const AdminVerify = () => {
   const [rejectingEventId, setRejectingEventId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const filteredEvents = events.filter(e => {
-    if (filter === 'PENDING') return e.status === 'pending_verification';
-    if (filter === 'PUBLISHED') return e.status === 'published';
-    if (filter === 'REJECTED') return e.status === 'rejected';
-    return true;
-  });
+  const filteredEvents = useMemo(() => {
+    return events.filter(e => {
+      if (filter === 'PENDING') return e.status === 'pending_verification';
+      if (filter === 'PUBLISHED') return e.status === 'published';
+      if (filter === 'REJECTED') return e.status === 'rejected';
+      return true;
+    });
+  }, [events, filter]);
 
-  const handleApprove = (id) => {
+  const handleApprove = useCallback((id) => {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, status: 'published' } : e));
     toast.success('Event telah disetujui & otomatis diterbitkan ke Papan Event!');
-    if (selectedEvent?.id === id) {
-      setSelectedEvent(prev => ({ ...prev, status: 'published' }));
-    }
-  };
+    setSelectedEvent(prev => prev?.id === id ? { ...prev, status: 'published' } : prev);
+  }, []);
 
-  const initiateReject = (id) => {
+  const initiateReject = useCallback((id) => {
     setRejectingEventId(id);
     setRejectReason('');
-  };
+  }, []);
 
-  const submitReject = () => {
+  const submitReject = useCallback(() => {
     if (!rejectReason.trim()) {
       toast.error('Alasan penolakan wajib diisi.');
       return;
@@ -44,11 +44,9 @@ const AdminVerify = () => {
     const safeReason = DOMPurify.sanitize(rejectReason);
     setEvents(prev => prev.map(e => e.id === rejectingEventId ? { ...e, status: 'rejected', rejectionReason: safeReason } : e));
     toast.error('Event telah ditolak.');
-    if (selectedEvent?.id === rejectingEventId) {
-      setSelectedEvent(prev => ({ ...prev, status: 'rejected', rejectionReason: safeReason }));
-    }
+    setSelectedEvent(prev => prev?.id === rejectingEventId ? { ...prev, status: 'rejected', rejectionReason: safeReason } : prev);
     setRejectingEventId(null);
-  };
+  }, [rejectReason, rejectingEventId]);
 
   return (
     <div className="page-fade">

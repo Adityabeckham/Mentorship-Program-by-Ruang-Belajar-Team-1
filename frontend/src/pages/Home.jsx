@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import toast from 'react-hot-toast';
@@ -58,6 +58,10 @@ const CAT_LABELS = {
   Art: '🎨 Art & Culture'
 };
 
+const formatDate = (dt) => new Date(dt).toLocaleDateString('id-ID', {
+  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+});
+
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -66,20 +70,18 @@ const Home = () => {
   const [activeModalEvent, setActiveModalEvent] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const filtered = EVENTS.filter(ev => {
-    const matchCat = selectedCat === 'All' || ev.category === selectedCat;
-    const matchSearch = !search ||
-      ev.title.toLowerCase().includes(search.toLowerCase()) ||
-      ev.org.toLowerCase().includes(search.toLowerCase()) ||
-      ev.speaker.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const filtered = useMemo(() => {
+    return EVENTS.filter(ev => {
+      const matchCat = selectedCat === 'All' || ev.category === selectedCat;
+      const matchSearch = !search ||
+        ev.title.toLowerCase().includes(search.toLowerCase()) ||
+        ev.org.toLowerCase().includes(search.toLowerCase()) ||
+        ev.speaker.toLowerCase().includes(search.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [selectedCat, search]);
 
-  const formatDate = (dt) => new Date(dt).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
-
-  const handleRegisterEvent = async (ev) => {
+  const handleRegisterEvent = useCallback(async (ev) => {
     if (!user) {
       toast.error('Silakan masuk (login) terlebih dahulu untuk mendaftar event.');
       navigate('/login');
@@ -93,7 +95,7 @@ const Home = () => {
       setIsRegistering(false);
       setActiveModalEvent(null);
     }, 1200);
-  };
+  }, [user, navigate]);
 
   return (
     <div className="page-fade">
