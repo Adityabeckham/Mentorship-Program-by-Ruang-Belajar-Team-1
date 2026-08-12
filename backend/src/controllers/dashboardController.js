@@ -66,3 +66,59 @@ exports.getPanitiaDashboardStats = async (req, res, next) => {
     next(err);
   }
 };
+
+// GET /admin/dashboard/stats
+exports.getAdminDashboardStats = async (req, res, next) => {
+  try {
+    // 1. Hitung total user & rincian per role
+    const { count: totalUsers } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: totalMahasiswa } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'mahasiswa');
+
+    const { count: totalPanitia } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'panitia');
+
+    // 2. Hitung total event & per status
+    const { count: totalEvents } = await supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true });
+
+    const statuses = ['draft', 'published', 'completed', 'canceled'];
+    const eventsByStatus = {};
+
+    for (const status of statuses) {
+      const { count } = await supabase
+        .from('events')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', status);
+      eventsByStatus[status] = count || 0;
+    }
+
+    // 3. Hitung total registrasi
+    const { count: totalRegistrations } = await supabase
+      .from('registrations')
+      .select('id', { count: 'exact', head: true });
+
+    // 4. Return respons agregat
+    res.status(200).json({
+      status: 'success',
+      data: {
+        total_users: totalUsers || 0,
+        total_mahasiswa: totalMahasiswa || 0,
+        total_panitia: totalPanitia || 0,
+        total_events: totalEvents || 0,
+        total_registrations: totalRegistrations || 0,
+        events_by_status: eventsByStatus
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};

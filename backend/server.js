@@ -1,4 +1,5 @@
 require('dotenv').config();
+const helmet = require('helmet');
 const express = require('express');
 const cors = require('cors');
 const healthRoutes = require('./src/routes/healthRoutes');
@@ -14,6 +15,9 @@ const sanitizeInput = require('./src/middlewares/sanitizeMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Helmet Security Headers 
+app.use(helmet());
 
 // 1. Core Middlewares
 app.use(cors()); // Memungkinkan integrasi dengan React Frontend
@@ -37,8 +41,8 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes); // Base Route untuk Autentikasi
-app.use('/api/v1', registrationRoutes);
 app.use('/api/v1', eventRoutes);
+app.use('/api/v1', registrationRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
 

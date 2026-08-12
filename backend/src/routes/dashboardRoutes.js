@@ -14,8 +14,12 @@ router.get(
   dashboardController.getPanitiaDashboardStats
 );
 
-// (Nantinya kamu bisa tambahkan route dashboard lainnya di sini):
-// router.get('/admin/dashboard/stats', authorizeRoles('admin'), dashboardController.getAdminDashboardStats);
-// router.get('/user/dashboard/stats', authorizeRoles('mahasiswa'), dashboardController.getUserDashboardStats);
+// Endpoint Statistik Admin (Hanya role Admin)
+router.get(
+  '/admin/dashboard/stats',
+  authenticateToken, 
+  authorizeRoles('admin'), 
+  dashboardController.getAdminDashboardStats
+);
 
 module.exports = router;

@@ -1,0 +1,30 @@
+import apiService from './api';
+
+export const eventService = {
+  getAllEvents: async (params = {}) => {
+    const response = await apiService.get('/events', { params });
+    return response.data;
+  },
+
+  getEventById: async (id) => {
+    const response = await apiService.get(`/events/${id}`);
+    return response.data;
+  },
+
+  createEvent: async (payload) => {
+    const response = await apiService.post('/events', payload);
+    return response.data;
+  },
+
+  updateEvent: async (id, payload) => {
+    const response = await apiService.put(`/events/${id}`, payload);
+    return response.data;
+  },
+
+  deleteEvent: async (id) => {
+    const response = await apiService.delete(`/events/${id}`);
+    return response.data;
+  },
+};
+
+export default eventService;

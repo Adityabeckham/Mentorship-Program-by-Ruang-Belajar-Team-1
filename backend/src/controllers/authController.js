@@ -136,3 +136,33 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+// 3. GET /auth/me
+exports.getMe = async (req, res, next) => {
+  try {
+    // req.user diset oleh authenticateToken middleware
+    const userId = req.user.id;
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, nama, email, role, created_at')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error || !user) {
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Pengguna tidak ditemukan',
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      data: user,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

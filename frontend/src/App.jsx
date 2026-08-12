@@ -1,12 +1,17 @@
 import React from 'react';
 import AppRouter from './routes/AppRouter';
 import { ThemeProvider } from './providers/ThemeProvider';
+import { AuthProvider } from './providers/AuthProvider';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
-    <ThemeProvider>
-      <AppRouter />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <AppRouter />
+        <Toaster position="top-right" reverseOrder={false} />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
