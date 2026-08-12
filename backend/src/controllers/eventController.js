@@ -431,7 +431,8 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
         users:created_by (
           id,
           nama,
-          email
+          email,
+          organization_name
         )
       `)
       .is('deleted_at', null)
