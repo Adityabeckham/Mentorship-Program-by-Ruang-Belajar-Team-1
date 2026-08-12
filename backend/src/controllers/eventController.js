@@ -11,8 +11,6 @@ exports.getManagedEvents = async (req, res, next) => {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    // Jika Panitia, filter hanya event miliknya.
-    // Jika Admin, ambil seluruh event dari semua panitia.
     if (role === 'panitia') {
       query = query.eq('created_by', userId);
     }
@@ -196,9 +194,8 @@ exports.updateEvent = async (req, res, next) => {
 
     const { data: existingEvent, error: findError } = await supabase
       .from('events')
-      .select('id, status')
+      .select('id, created_by, status')
       .eq('id', id)
-      .eq('created_by', panitiaId)
       .is('deleted_at', null)
       .single();
 
@@ -206,7 +203,15 @@ exports.updateEvent = async (req, res, next) => {
       return res.status(404).json({
         status: 'fail',
         statusCode: 404,
-        message: 'Event tidak ditemukan atau Anda tidak memiliki akses.',
+        message: 'Event tidak ditemukan.',
+      });
+    }
+
+    if (req.user.role === 'panitia' && existingEvent.created_by !== panitiaId) {
+      return res.status(403).json({
+        status: 'fail',
+        statusCode: 403,
+        message: 'Akses ditolak. Anda tidak memiliki izin untuk mengedit event milik panitia lain.',
       });
     }
 
@@ -244,22 +249,37 @@ exports.deleteEvent = async (req, res, next) => {
     const { id } = req.params;
     const panitiaId = req.user.id;
 
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, created_by')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
+
+    if (findError || !event) {
+      return res.status(404).json({
+        status: 'fail',
+        statusCode: 404,
+        message: 'Event tidak ditemukan.',
+      });
+    }
+
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return res.status(403).json({
+        status: 'fail',
+        statusCode: 403,
+        message: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus event milik panitia lain.',
+      });
+    }
+
     const { data: deletedEvent, error } = await supabase
       .from('events')
       .update({ deleted_at: new Date() })
       .eq('id', id)
-      .eq('created_by', panitiaId)
-      .is('deleted_at', null)
       .select('id, title, deleted_at')
       .single();
 
-    if (error || !deletedEvent) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan atau gagal dihapus.',
-      });
-    }
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
@@ -278,7 +298,6 @@ exports.getEventParticipants = async (req, res, next) => {
     const eventId = req.params.id;
     const { id: userId, role } = req.user;
 
-    // Pastikan event milik panitia ini (jika bukan admin)
     if (role !== 'admin') {
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -333,7 +352,6 @@ exports.submitEventForVerification = async (req, res, next) => {
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_by')
       .eq('id', id)
-      .eq('created_by', panitiaId)
       .is('deleted_at', null)
       .single();
 
@@ -341,7 +359,15 @@ exports.submitEventForVerification = async (req, res, next) => {
       return res.status(404).json({
         status: 'fail',
         statusCode: 404,
-        message: 'Event tidak ditemukan atau Anda tidak memiliki akses ke event ini.',
+        message: 'Event tidak ditemukan.',
+      });
+    }
+
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return res.status(403).json({
+        status: 'fail',
+        statusCode: 403,
+        message: 'Akses ditolak. Anda tidak memiliki izin untuk mengajukan event milik panitia lain.',
       });
     }
 
@@ -357,7 +383,7 @@ exports.submitEventForVerification = async (req, res, next) => {
       return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: 'Gagal mengajukan event. Informasi event belum lengkap (title, description, location, event_date, dan quota wajib diisi).',
+        message: 'Gagal mengajukan event. Informasi event belum lengkap.',
       });
     }
 
