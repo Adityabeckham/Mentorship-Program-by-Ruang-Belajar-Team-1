@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { createEventValidation } = require('../validators/eventValidators');
+const { verifyEventOwnership } = require('../utils/authorizeOwnership');
 
 // Public
 router.get('/events', eventController.getPublicEvents);

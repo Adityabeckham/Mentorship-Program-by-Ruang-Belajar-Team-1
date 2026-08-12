@@ -49,12 +49,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const login = (payload) => {
-    const nextToken = payload?.token || '';
-    const nextUser = payload?.user || null;
+  const login = (tokenOrPayload, userParam) => {
+    let nextToken = '';
+    let nextUser = null;
+
+    if (typeof tokenOrPayload === 'object' && tokenOrPayload !== null) {
+      nextToken = tokenOrPayload.token || '';
+      nextUser = tokenOrPayload.user || null;
+    } else {
+      nextToken = tokenOrPayload || '';
+      nextUser = userParam || null;
+    }
 
     setToken(nextToken);
     setUser(nextUser);
+    if (nextToken) {
+      setAuthToken(nextToken);
+    }
   };
 
   const logout = () => {
