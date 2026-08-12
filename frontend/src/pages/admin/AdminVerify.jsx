@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 const INITIAL_EVENTS = [
@@ -13,28 +13,26 @@ const AdminVerify = () => {
   const [filter, setFilter] = useState('ALL');
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const filteredEvents = events.filter(e => {
-    if (filter === 'PENDING') return e.status === 'pending_verification';
-    if (filter === 'PUBLISHED') return e.status === 'published';
-    if (filter === 'REJECTED') return e.status === 'rejected';
-    return true;
-  });
+  const filteredEvents = useMemo(() => {
+    return events.filter(e => {
+      if (filter === 'PENDING') return e.status === 'pending_verification';
+      if (filter === 'PUBLISHED') return e.status === 'published';
+      if (filter === 'REJECTED') return e.status === 'rejected';
+      return true;
+    });
+  }, [events, filter]);
 
-  const handleApprove = (id) => {
+  const handleApprove = useCallback((id) => {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, status: 'published' } : e));
     toast.success('Event telah disetujui & otomatis diterbitkan ke Papan Event!');
-    if (selectedEvent?.id === id) {
-      setSelectedEvent(prev => ({ ...prev, status: 'published' }));
-    }
-  };
+    setSelectedEvent(prev => prev?.id === id ? { ...prev, status: 'published' } : prev);
+  }, []);
 
-  const handleReject = (id) => {
+  const handleReject = useCallback((id) => {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, status: 'rejected' } : e));
     toast.error('Event telah ditolak.');
-    if (selectedEvent?.id === id) {
-      setSelectedEvent(prev => ({ ...prev, status: 'rejected' }));
-    }
-  };
+    setSelectedEvent(prev => prev?.id === id ? { ...prev, status: 'rejected' } : prev);
+  }, []);
 
   return (
     <div className="page-fade">

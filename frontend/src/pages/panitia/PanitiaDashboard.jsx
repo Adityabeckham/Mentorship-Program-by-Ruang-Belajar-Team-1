@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../../providers/AuthProvider';
 import toast from 'react-hot-toast';
 
@@ -22,14 +22,14 @@ const PanitiaDashboard = () => {
   const [date, setDate] = useState('');
   const [desc, setDesc] = useState('');
 
-  const stats = [
+  const stats = useMemo(() => [
     { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
     { num: String(events.filter(e => e.status === 'pending_verification').length), lbl: 'Pending Verifikasi', accent: 'amber' },
     { num: String(events.filter(e => e.status === 'published').length), lbl: 'Event Published', accent: 'mint' },
     { num: String(events.filter(e => e.status === 'rejected').length), lbl: 'Event Ditolak', accent: 'coral' },
-  ];
+  ], [events]);
 
-  const handleCreateEvent = (e) => {
+  const handleCreateEvent = useCallback((e) => {
     e.preventDefault();
     if (!title || !speaker || !location || !date) {
       toast.error('Harap isi semua kolom formulir!');
@@ -47,7 +47,7 @@ const PanitiaDashboard = () => {
       speaker,
     };
 
-    setEvents([newEvent, ...events]);
+    setEvents(prev => [newEvent, ...prev]);
     toast.success('Draft event berhasil diajukan! Menunggu verifikasi dari Admin Platform.');
     setShowCreateModal(false);
     setTitle('');
@@ -55,7 +55,7 @@ const PanitiaDashboard = () => {
     setLocation('');
     setDate('');
     setDesc('');
-  };
+  }, [title, speaker, location, date, quota, category]);
 
   return (
     <div className="page-fade">
