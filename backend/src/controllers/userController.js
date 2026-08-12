@@ -4,7 +4,7 @@ const supabase = require('../config/supabase');
 // 1. POST /admin/panitia (Membuat Akun Panitia Baru)
 exports.createPanitia = async (req, res, next) => {
   try {
-    const { nama, email, password } = req.body;
+    const { nama, email, password, organization_name } = req.body;
 
     if (!nama || !email || !password) {
       return res.status(400).json({ message: 'Nama organisasi/panitia, email, dan password wajib diisi.' });
@@ -33,10 +33,11 @@ exports.createPanitia = async (req, res, next) => {
           nama, // Nama organisasi/panitia (e.g., BEM / UKM Musik)
           email,
           password: hashedPassword,
-          role: 'panitia'
+          role: 'panitia',
+          organization_name: organization_name || null
         }
       ])
-      .select('id, nama, email, role, created_at')
+      .select('id, nama, email, role, organization_name, created_at')
       .single();
 
     if (error) throw error;
@@ -56,7 +57,7 @@ exports.getPanitiaList = async (req, res, next) => {
   try {
     const { data: panitiaList, error } = await supabase
       .from('users')
-      .select('id, nama, email, role, created_at, updated_at')
+      .select('id, nama, email, role, organization_name, created_at, updated_at')
       .eq('role', 'panitia')
       .order('created_at', { ascending: false });
 
@@ -81,6 +82,7 @@ exports.updatePanitia = async (req, res, next) => {
     const updatePayload = {};
     if (nama) updatePayload.nama = nama;
     if (email) updatePayload.email = email;
+    if (organization_name) updatePayload.organization_name = organization_name;
     if (password) {
       const salt = await bcrypt.genSalt(10);
       updatePayload.password = await bcrypt.hash(password, salt);
@@ -92,7 +94,7 @@ exports.updatePanitia = async (req, res, next) => {
       .update(updatePayload)
       .eq('id', id)
       .eq('role', 'panitia') // Memastikan target yang diubah ber-role panitia
-      .select('id, nama, email, role, updated_at')
+      .select('id, nama, email, role, organization_name, updated_at')
       .single();
 
     if (error || !updatedPanitia) {
@@ -116,7 +118,7 @@ exports.getAllUsers = async (req, res, next) => {
 
     let query = supabase
       .from('users')
-      .select('id, nama, email, role, created_at')
+      .select('id, nama, email, role, organization_name, created_at')
       .order('created_at', { ascending: false });
 
     if (role) {

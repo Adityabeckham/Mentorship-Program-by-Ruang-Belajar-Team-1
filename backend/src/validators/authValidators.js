@@ -23,6 +23,11 @@ exports.registerValidation = [
     .optional()
     .isIn(['mahasiswa', 'panitia', 'admin'])
     .withMessage('Role tidak valid'),
+  body('organization_name')
+    .optional()
+    .trim()
+    .isString()
+    .withMessage('Nama organisasi harus berupa teks'),
 ];
 
 exports.loginValidation = [
