@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import DOMPurify from 'dompurify';
 
 const INITIAL_EVENTS = [
   { id: 'v-1', org: 'UKM Robotika Kampus', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', status: 'pending_verification', speaker: 'Dr. Eng. Ir. Hendra (Pakar Mekatronika)', quota: 80, registered: 0, location: 'Lab Robotika & Gedung Serbaguna', desc: 'Kompetisi battle bot dan pelatihan pembuatan robot dari dasar hingga tahap pemrograman mikrokontroler.', benefits: ['✨ E-Sertifikat SKKM 5 Poin', '🤖 Kit Komponen Robot dasar', '🏆 Piala & Total Hadiah 5 Juta'] },
@@ -12,6 +13,8 @@ const AdminVerify = () => {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [filter, setFilter] = useState('ALL');
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [rejectingEventId, setRejectingEventId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const filteredEvents = events.filter(e => {
     if (filter === 'PENDING') return e.status === 'pending_verification';
@@ -28,12 +31,23 @@ const AdminVerify = () => {
     }
   };
 
-  const handleReject = (id) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, status: 'rejected' } : e));
-    toast.error('Event telah ditolak.');
-    if (selectedEvent?.id === id) {
-      setSelectedEvent(prev => ({ ...prev, status: 'rejected' }));
+  const initiateReject = (id) => {
+    setRejectingEventId(id);
+    setRejectReason('');
+  };
+
+  const submitReject = () => {
+    if (!rejectReason.trim()) {
+      toast.error('Alasan penolakan wajib diisi.');
+      return;
     }
+    const safeReason = DOMPurify.sanitize(rejectReason);
+    setEvents(prev => prev.map(e => e.id === rejectingEventId ? { ...e, status: 'rejected', rejectionReason: safeReason } : e));
+    toast.error('Event telah ditolak.');
+    if (selectedEvent?.id === rejectingEventId) {
+      setSelectedEvent(prev => ({ ...prev, status: 'rejected', rejectionReason: safeReason }));
+    }
+    setRejectingEventId(null);
   };
 
   return (
@@ -131,7 +145,7 @@ const AdminVerify = () => {
                             <button className="btn btn-success btn-sm" onClick={() => handleApprove(ev.id)}>
                               ✅ Approve
                             </button>
-                            <button className="btn btn-danger btn-sm" onClick={() => handleReject(ev.id)}>
+                            <button className="btn btn-danger btn-sm" onClick={() => initiateReject(ev.id)}>
                               ❌ Reject
                             </button>
                           </>
@@ -181,6 +195,13 @@ const AdminVerify = () => {
                     </span>
                   </div>
 
+                  {selectedEvent.status === 'rejected' && selectedEvent.rejectionReason && (
+                    <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fdecea', border: '1px solid #c9bda2', borderRadius: '8px' }}>
+                      <strong style={{ color: '#b5342a', display: 'block', marginBottom: '4px' }}>Alasan Penolakan:</strong>
+                      <div style={{ color: '#87231c', fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: selectedEvent.rejectionReason }} />
+                    </div>
+                  )}
+
                   <div className="perforation" />
 
                   <h4 style={{ marginTop: '12px' }}>Detail Pelaksanaan</h4>
@@ -197,7 +218,7 @@ const AdminVerify = () => {
                       <button className="btn btn-success" style={{ width: '100%' }} onClick={() => handleApprove(selectedEvent.id)}>
                         ✅ Setujui &amp; Publikasikan Event
                       </button>
-                      <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => handleReject(selectedEvent.id)}>
+                      <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => initiateReject(selectedEvent.id)}>
                         ❌ Tolak Pengajuan Event
                       </button>
                     </>
@@ -207,6 +228,29 @@ const AdminVerify = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Reason Modal */}
+      {rejectingEventId && (
+        <div className="modal-backdrop" onClick={() => setRejectingEventId(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <button className="modal-close" onClick={() => setRejectingEventId(null)}>✕</button>
+            <h3 style={{ marginBottom: '12px' }}>Konfirmasi Penolakan</h3>
+            <div className="field">
+              <label>Alasan Penolakan</label>
+              <textarea
+                rows="3"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Tulis alasan mengapa event ini ditolak..."
+              />
+            </div>
+            <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline dark" onClick={() => setRejectingEventId(null)}>Batal</button>
+              <button className="btn btn-danger" onClick={submitReject}>Tolak Event</button>
             </div>
           </div>
         </div>

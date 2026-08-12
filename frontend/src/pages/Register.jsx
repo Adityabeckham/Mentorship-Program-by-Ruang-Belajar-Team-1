@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import authService from '../services/authService';
 import toast from 'react-hot-toast';
+import * as yup from 'yup';
+
+const registerSchema = yup.object().shape({
+  nama: yup.string().required('Nama lengkap wajib diisi.'),
+  email: yup.string().required('Email wajib diisi.').email('Format email tidak valid.'),
+  password: yup.string().required('Password wajib diisi.').min(8, 'Password minimal 8 karakter.'),
+  confirmPassword: yup.string()
+    .required('Konfirmasi password wajib diisi.')
+    .oneOf([yup.ref('password')], 'Konfirmasi password tidak cocok dengan password.'),
+});
 
 const Register = () => {
   const navigate = useNavigate();
@@ -11,20 +21,29 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+    setFieldErrors({});
 
-    if (!nama || !email || !password || !confirmPassword) {
-      setErrorMsg('Semua kolom formulir wajib diisi.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setErrorMsg('Konfirmasi password tidak cocok dengan password.');
-      return;
+    try {
+      await registerSchema.validate(
+        { nama, email, password, confirmPassword },
+        { abortEarly: false }
+      );
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        const errors = {};
+        err.inner.forEach((e) => {
+          errors[e.path] = e.message;
+        });
+        setFieldErrors(errors);
+        return;
+      }
     }
 
     setLoading(true);
@@ -77,6 +96,7 @@ const Register = () => {
               placeholder="Budi Santoso"
               required
             />
+            {fieldErrors.nama && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.nama}</div>}
           </div>
 
           <div className="field">
@@ -88,6 +108,7 @@ const Register = () => {
               placeholder="budi@kampus.ac.id"
               required
             />
+            {fieldErrors.email && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.email}</div>}
           </div>
 
           <div className="field">
@@ -99,6 +120,7 @@ const Register = () => {
               placeholder="Minimal 8 karakter"
               required
             />
+            {fieldErrors.password && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.password}</div>}
             <small>Gunakan kombinasi huruf &amp; angka</small>
           </div>
 
@@ -111,6 +133,7 @@ const Register = () => {
               placeholder="••••••••"
               required
             />
+            {fieldErrors.confirmPassword && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.confirmPassword}</div>}
           </div>
 
           <button
