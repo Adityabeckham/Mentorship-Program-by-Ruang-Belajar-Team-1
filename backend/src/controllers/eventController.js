@@ -8,7 +8,7 @@ exports.getManagedEvents = async (req, res, next) => {
     let query = supabase
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_by, created_at')
-      .is('deleted_at', null) // Filter: Hanya event yang belum di-soft delete
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (role === 'panitia') {
@@ -85,7 +85,7 @@ exports.getPublicEvents = async (req, res, next) => {
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_at', { count: 'exact' })
       .eq('status', 'published')
-      .is('deleted_at', null) // Filter: Hanya event yang aktif
+      .is('deleted_at', null)
       .order('event_date', { ascending: true });
 
     if (search) {
@@ -192,15 +192,14 @@ exports.updateEvent = async (req, res, next) => {
     const panitiaId = req.user.id;
     const { title, description, location, event_date, quota, status } = req.body;
 
-    // Cek dulu apakah event ada di database
-    const { data: event, error: findError } = await supabase
+    const { data: existingEvent, error: findError } = await supabase
       .from('events')
-      .select('id, created_by')
+      .select('id, created_by, status')
       .eq('id', id)
       .is('deleted_at', null)
       .single();
 
-    if (findError || !event) {
+    if (findError || !existingEvent) {
       return res.status(404).json({
         status: 'fail',
         statusCode: 404,
@@ -208,8 +207,7 @@ exports.updateEvent = async (req, res, next) => {
       });
     }
 
-    // Jika user adalah Panitia dan bukan pembuat event -> 403 Forbidden
-    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+    if (req.user.role === 'panitia' && existingEvent.created_by !== panitiaId) {
       return res.status(403).json({
         status: 'fail',
         statusCode: 403,
@@ -217,7 +215,6 @@ exports.updateEvent = async (req, res, next) => {
       });
     }
 
-    // Eksekusi Update
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
@@ -295,7 +292,57 @@ exports.deleteEvent = async (req, res, next) => {
   }
 };
 
-// 8. PATCH /panitia/events/:id/submit
+// 8. GET /events/:id/participants (Untuk Panitia)
+exports.getEventParticipants = async (req, res, next) => {
+  try {
+    const eventId = req.params.id;
+    const { id: userId, role } = req.user;
+
+    if (role !== 'admin') {
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id, created_by')
+        .eq('id', eventId)
+        .single();
+        
+      if (eventError || !event || event.created_by !== userId) {
+        return res.status(403).json({
+          status: 'fail',
+          statusCode: 403,
+          message: 'Anda tidak memiliki akses ke event ini.',
+        });
+      }
+    }
+
+    const { data: participants, error } = await supabase
+      .from('registrations')
+      .select(`
+        id,
+        status,
+        registered_at,
+        users (
+          id,
+          nama,
+          email
+        )
+      `)
+      .eq('event_id', eventId)
+      .order('registered_at', { ascending: true });
+
+    if (error) throw error;
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      total: participants.length,
+      data: participants,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 9. PATCH /panitia/events/:id/submit
 exports.submitEventForVerification = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -363,10 +410,10 @@ exports.submitEventForVerification = async (req, res, next) => {
   }
 };
 
-// 9. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
+// 10. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
 exports.getPendingEventsForAdmin = async (req, res, next) => {
   try {
-    const { status } = req.query; // Opsional: ?status=pending_verification / ?status=rejected dll
+    const { status } = req.query;
 
     let query = supabase
       .from('events')
@@ -390,7 +437,6 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    // Secara default, tampilkan event yang butuh verifikasi ('pending_verification')
     if (status) {
       query = query.eq('status', status);
     } else {
@@ -411,13 +457,12 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
   }
 };
 
-// 10. PATCH /admin/events/:id/verify (Approve / Reject Event)
+// 11. PATCH /admin/events/:id/verify (Approve / Reject Event)
 exports.verifyEventByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { action, rejection_reason } = req.body; // action: 'approve' atau 'reject'
+    const { action, rejection_reason } = req.body;
 
-    // Validasi input action
     if (!action || !['approve', 'reject'].includes(action)) {
       return res.status(400).json({
         status: 'fail',
@@ -426,7 +471,6 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       });
     }
 
-    // Cek keberadaan event & pastikan statusnya 'pending_verification'
     const { data: event, error: findError } = await supabase
       .from('events')
       .select('id, title, status')
@@ -442,14 +486,12 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       });
     }
 
-    // Tentukan status baru & alasan penolakan
     let newStatus = '';
     let reasonToSave = null;
 
     if (action === 'approve') {
       newStatus = 'published';
     } else if (action === 'reject') {
-      // Acceptance Criteria: Jika reject, rejection_reason wajib diisi
       if (!rejection_reason || rejection_reason.trim() === '') {
         return res.status(400).json({
           status: 'fail',
@@ -461,7 +503,6 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       reasonToSave = rejection_reason;
     }
 
-    // Update status event 
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
@@ -484,5 +525,4 @@ exports.verifyEventByAdmin = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-
 };

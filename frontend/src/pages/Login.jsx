@@ -222,9 +222,19 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const data = await authService.login(email, password);
-      login(data.token, data.user);
-      navigate('/dashboard');
+      const res = await authService.login(email, password);
+      const authToken = res?.token || res?.data?.token;
+      const userObj = res?.user || res?.data?.user;
+
+      login({ token: authToken, user: userObj });
+
+      if (userObj?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (userObj?.role === 'panitia') {
+        navigate('/panitia/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       const msg = error.response?.data?.message || 'Login gagal. Periksa kembali email dan password Anda.';
       setErrorMsg(msg);
