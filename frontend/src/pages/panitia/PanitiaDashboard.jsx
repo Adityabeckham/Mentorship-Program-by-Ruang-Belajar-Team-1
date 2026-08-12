@@ -32,7 +32,6 @@ const PanitiaDashboard = () => {
   const [quota, setQuota] = useState('100');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
-  const [date, setDate] = useState('');
   const [desc, setDesc] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
