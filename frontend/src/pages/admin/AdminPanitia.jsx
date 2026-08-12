@@ -1,5 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import * as yup from 'yup';
+import DOMPurify from 'dompurify';
+
+const panitiaSchema = yup.object().shape({
+  formName: yup.string().required('Nama organisasi wajib diisi.'),
+  formType: yup.string().required('Jenis organisasi wajib diisi.'),
+  formEmail: yup.string().required('Email resmi wajib diisi.').email('Format email tidak valid.'),
+  formPic: yup.string().required('Nama penanggung jawab wajib diisi.'),
+});
 
 const INITIAL_PANITIA = [
   { id: 'p-1', name: 'BEM Fakultas Ilmu Komputer', type: 'BEM', email: 'bem.fasilkom@kampus.ac.id', pic: 'Aditya Beckham', totalEvents: 4, status: 'active' },
@@ -19,6 +28,7 @@ const AdminPanitia = () => {
   const [formType, setFormType] = useState('UKM');
   const [formEmail, setFormEmail] = useState('');
   const [formPic, setFormPic] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const filteredList = useMemo(() => {
     return panitiaList.filter(p =>
@@ -39,18 +49,32 @@ const AdminPanitia = () => {
     }));
   }, []);
 
-  const handleAddPanitia = useCallback((e) => {
+  const handleAddPanitia = useCallback(async (e) => {
     e.preventDefault();
-    if (!formName || !formEmail || !formPic) {
-      toast.error('Semua kolom wajib diisi!');
-      return;
+    setFieldErrors({});
+    
+    try {
+      await panitiaSchema.validate(
+        { formName, formType, formEmail, formPic },
+        { abortEarly: false }
+      );
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        const errors = {};
+        err.inner.forEach((e) => {
+          errors[e.path] = e.message;
+        });
+        setFieldErrors(errors);
+        toast.error('Periksa kembali isian formulir Anda.');
+        return;
+      }
     }
     const newEntry = {
       id: `p-${Date.now()}`,
-      name: formName,
+      name: DOMPurify.sanitize(formName),
       type: formType,
       email: formEmail,
-      pic: formPic,
+      pic: DOMPurify.sanitize(formPic),
       totalEvents: 0,
       status: 'active',
     };
@@ -183,6 +207,7 @@ const AdminPanitia = () => {
                   placeholder="mis. UKM Paduan Suara Kampus"
                   required
                 />
+                {fieldErrors.formName && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.formName}</div>}
               </div>
 
               <div className="field">
@@ -203,6 +228,7 @@ const AdminPanitia = () => {
                   placeholder="ukm.paduansuara@kampus.ac.id"
                   required
                 />
+                {fieldErrors.formEmail && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.formEmail}</div>}
               </div>
 
               <div className="field">
@@ -214,6 +240,7 @@ const AdminPanitia = () => {
                   placeholder="Budi Raharjo (Ketua Panitia)"
                   required
                 />
+                {fieldErrors.formPic && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.formPic}</div>}
               </div>
 
               <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

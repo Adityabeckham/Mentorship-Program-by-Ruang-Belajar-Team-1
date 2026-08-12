@@ -1,11 +1,23 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../../providers/AuthProvider';
 import toast from 'react-hot-toast';
+import * as yup from 'yup';
+import DOMPurify from 'dompurify';
+
+const eventSchema = yup.object().shape({
+  title: yup.string().required('Judul event wajib diisi.'),
+  category: yup.string().required('Kategori wajib diisi.'),
+  speaker: yup.string().required('Narasumber wajib diisi.'),
+  quota: yup.number().typeError('Kuota harus berupa angka.').min(1, 'Minimal kuota 1.').required('Kuota wajib diisi.'),
+  location: yup.string().required('Lokasi wajib diisi.'),
+  date: yup.date().typeError('Tanggal tidak valid.').required('Tanggal wajib diisi.'),
+  desc: yup.string().required('Deskripsi singkat acara wajib diisi.'),
+});
 
 const INITIAL_EVENTS = [
   { id: 'p-1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026, 09:00', status: 'published', peserta: 98, quota: 100, category: 'Technology', speaker: 'Budi Rahardjo' },
-  { id: 'p-2', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek' },
-  { id: 'p-3', title: 'Workshop Android App Development with Kotlin', date: '10 Sep 2026, 13:00', status: 'pending_verification', peserta: 0, quota: 50, category: 'Technology', speaker: 'Mobile Lead Engineer' },
+  { id: 'p-2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', status: 'pending_verification', peserta: 0, quota: 80, category: 'Technology', speaker: 'Dr. Eng. Ir. Hendra' },
+  { id: 'p-3', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek' },
 ];
 
 const PanitiaDashboard = () => {
@@ -13,7 +25,7 @@ const PanitiaDashboard = () => {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Form states
+  // Form States
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Technology');
   const [speaker, setSpeaker] = useState('');
@@ -21,6 +33,7 @@ const PanitiaDashboard = () => {
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
   const [desc, setDesc] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const stats = useMemo(() => [
     { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
@@ -29,22 +42,37 @@ const PanitiaDashboard = () => {
     { num: String(events.filter(e => e.status === 'rejected').length), lbl: 'Event Ditolak', accent: 'coral' },
   ], [events]);
 
-  const handleCreateEvent = useCallback((e) => {
+  const handleCreateEvent = useCallback(async (e) => {
     e.preventDefault();
-    if (!title || !speaker || !location || !date) {
-      toast.error('Harap isi semua kolom formulir!');
-      return;
+    setFieldErrors({});
+
+    try {
+      await eventSchema.validate(
+        { title, category, speaker, quota, location, date, desc },
+        { abortEarly: false }
+      );
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        const errors = {};
+        err.inner.forEach((e) => {
+          errors[e.path] = e.message;
+        });
+        setFieldErrors(errors);
+        toast.error('Periksa kembali isian formulir Anda.');
+        return;
+      }
     }
 
     const newEvent = {
       id: `p-${Date.now()}`,
-      title,
+      title: DOMPurify.sanitize(title),
       date: new Date(date).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
       status: 'pending_verification',
       peserta: 0,
       quota: parseInt(quota) || 100,
       category,
-      speaker,
+      speaker: DOMPurify.sanitize(speaker),
+      desc: DOMPurify.sanitize(desc),
     };
 
     setEvents(prev => [newEvent, ...prev]);
@@ -55,29 +83,29 @@ const PanitiaDashboard = () => {
     setLocation('');
     setDate('');
     setDesc('');
-  }, [title, speaker, location, date, quota, category]);
+  }, [title, category, speaker, quota, location, date, desc]);
 
   return (
     <div className="page-fade">
-      {/* Title */}
+      {/* Title Header */}
       <div className="section-title">
-        <span className="eyebrow">Statistik Organisasi • {user?.nama || 'Panitia'}</span>
-        <h2 style={{ color: '#fff' }}>Dashboard Panitia Organisasi</h2>
+        <span className="eyebrow">Dashboard Panitia Penyelenggara</span>
+        <h2 style={{ color: '#fff' }}>Kelola Event Organisasi Saya</h2>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Cards */}
       <div className="stat-grid">
-        {stats.map((s) => (
-          <div key={s.lbl} className={`stat-card ${s.accent}`}>
+        {stats.map((s, i) => (
+          <div key={i} className={`stat-card ${s.accent}`}>
             <div className="num">{s.num}</div>
             <div className="lbl">{s.lbl}</div>
           </div>
         ))}
       </div>
 
-      {/* Events Table Card */}
+      {/* Main Table Card */}
       <div className="card">
-        <div className="toolbar">
+        <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h3 style={{ fontSize: '19px', margin: 0 }}>Ringkasan Event Milik Organisasi Saya</h3>
             <p style={{ fontSize: '12.5px', color: '#8a7355', margin: '2px 0 0' }}>
@@ -152,6 +180,7 @@ const PanitiaDashboard = () => {
                   placeholder="mis. Seminar Nasional Generative AI 2026"
                   required
                 />
+                {fieldErrors.title && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.title}</div>}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -174,6 +203,7 @@ const PanitiaDashboard = () => {
                     min="10"
                     required
                   />
+                  {fieldErrors.quota && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.quota}</div>}
                 </div>
               </div>
 
@@ -186,6 +216,7 @@ const PanitiaDashboard = () => {
                   placeholder="mis. Budi Rahardjo (AI Expert)"
                   required
                 />
+                {fieldErrors.speaker && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.speaker}</div>}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -197,6 +228,7 @@ const PanitiaDashboard = () => {
                     onChange={(e) => setDate(e.target.value)}
                     required
                   />
+                  {fieldErrors.date && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.date}</div>}
                 </div>
                 <div className="field">
                   <label>Lokasi Acara</label>
@@ -207,6 +239,7 @@ const PanitiaDashboard = () => {
                     placeholder="mis. Auditorium Utama"
                     required
                   />
+                  {fieldErrors.location && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.location}</div>}
                 </div>
               </div>
 
@@ -218,6 +251,7 @@ const PanitiaDashboard = () => {
                   onChange={(e) => setDesc(e.target.value)}
                   placeholder="Jelaskan secara singkat tujuan dan materi acara..."
                 />
+                {fieldErrors.desc && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.desc}</div>}
               </div>
 
               <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

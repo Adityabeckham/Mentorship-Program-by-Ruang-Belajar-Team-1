@@ -2,6 +2,12 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import authService from '../services/authService';
+import * as yup from 'yup';
+
+const loginSchema = yup.object().shape({
+  email: yup.string().required('Email wajib diisi.').email('Format email tidak valid.'),
+  password: yup.string().required('Password wajib diisi.'),
+});
 
 /* ============================================================
    ROBOT MASCOT SVG
@@ -201,6 +207,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [shaking, setShaking] = useState(false);
   const formRef = useRef(null);
@@ -213,11 +220,20 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setFieldErrors({});
 
-    if (!email || !password) {
-      setErrorMsg('Email dan password wajib diisi.');
-      triggerShake();
-      return;
+    try {
+      await loginSchema.validate({ email, password }, { abortEarly: false });
+    } catch (err) {
+      if (err instanceof yup.ValidationError) {
+        const errors = {};
+        err.inner.forEach((e) => {
+          errors[e.path] = e.message;
+        });
+        setFieldErrors(errors);
+        triggerShake();
+        return;
+      }
     }
 
     setLoading(true);
@@ -295,6 +311,7 @@ const Login = () => {
               placeholder="budi@kampus.ac.id"
               autoComplete="email"
             />
+            {fieldErrors.email && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.email}</div>}
             <EmailDots length={email.length} />
           </div>
 
@@ -313,7 +330,8 @@ const Login = () => {
               placeholder="••••••••"
               autoComplete="current-password"
             />
-            {passwordFocused && (
+            {fieldErrors.password && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.password}</div>}
+            {passwordFocused && !fieldErrors.password && (
               <small style={{ color: '#8a7355', fontFamily: "'Space Mono', monospace" }}>
                 🔒 Maskot menutup mata saat kamu mengetik!
               </small>
