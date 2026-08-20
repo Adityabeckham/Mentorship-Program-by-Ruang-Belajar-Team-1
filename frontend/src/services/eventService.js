@@ -12,12 +12,12 @@ export const eventService = {
   },
 
   createEvent: async (payload) => {
-    const response = await apiService.post('/events', payload);
+    const response = await apiService.post('/panitia/events', payload);
     return response.data;
   },
 
   updateEvent: async (id, payload) => {
-    const response = await apiService.put(`/events/${id}`, payload);
+    const response = await apiService.put(`/panitia/events/${id}`, payload);
     return response.data;
   },
 
