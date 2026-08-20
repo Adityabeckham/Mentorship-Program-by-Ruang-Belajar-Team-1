@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useAuth } from '../../providers/AuthProvider';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
 import DOMPurify from 'dompurify';
@@ -22,7 +21,6 @@ const INITIAL_EVENTS = [
 ];
 
 const PanitiaDashboard = () => {
-  const { user } = useAuth();
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -39,10 +37,10 @@ const PanitiaDashboard = () => {
   const [fieldErrors, setFieldErrors] = useState({});
 
   const stats = useMemo(() => [
-    { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
+    { num: String(events.length), lbl: 'Total Event', accent: 'navy' },
+    { num: String(events.reduce((total, event) => total + event.peserta, 0)), lbl: 'Total Peserta', accent: 'mint' },
+    { num: String(events.filter(e => e.status === 'draft').length), lbl: 'Draft', accent: 'purple' },
     { num: String(events.filter(e => e.status === 'pending_verification').length), lbl: 'Pending Verifikasi', accent: 'amber' },
-    { num: String(events.filter(e => e.status === 'published').length), lbl: 'Event Published', accent: 'mint' },
-    { num: String(events.filter(e => e.status === 'rejected').length), lbl: 'Event Ditolak', accent: 'coral' },
   ], [events]);
 
   const handleCreateEvent = useCallback(async (e) => {
@@ -70,7 +68,7 @@ const PanitiaDashboard = () => {
       id: `p-${Date.now()}`,
       title: DOMPurify.sanitize(title),
       date: new Date(date).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      status: 'pending_verification',
+      status: 'draft',
       peserta: 0,
       quota: parseInt(quota) || 100,
       category,
@@ -79,7 +77,7 @@ const PanitiaDashboard = () => {
     };
 
     setEvents(prev => [newEvent, ...prev]);
-    toast.success('Draft event berhasil diajukan! Menunggu verifikasi dari Admin Platform.');
+    toast.success('Draft event berhasil disimpan. Ajukan untuk verifikasi saat sudah siap.');
     setShowCreateModal(false);
     setTitle('');
     setSpeaker('');
@@ -100,7 +98,7 @@ const PanitiaDashboard = () => {
       const parsed = new Date(ev.date);
       const iso = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000).toISOString().slice(0,16);
       setDate(iso);
-    } catch (err) {
+    } catch {
       setDate('');
     }
     setDesc(ev.desc || '');
@@ -232,7 +230,7 @@ const PanitiaDashboard = () => {
                         ✏️ Edit
                       </button>
 
-                      {ev.status !== 'pending_verification' && ev.status !== 'published' && (
+                      {(ev.status === 'draft' || ev.status === 'rejected') && (
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => handleSubmitVerification(ev.id)}
