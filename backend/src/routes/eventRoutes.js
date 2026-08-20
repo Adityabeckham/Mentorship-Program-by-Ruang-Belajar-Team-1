@@ -9,17 +9,19 @@ const { verifyEventOwnership } = require('../utils/authorizeOwnership');
 
 // Public
 router.get('/events', eventController.getPublicEvents);
-router.get('/events/:id', eventController.getPublicEventDetail);
-
-// Protected (All)
-router.use(authenticateToken);
 
 // Management
 router.get(
   '/events/manage',
+  authenticateToken,
   authorizeRoles('panitia', 'admin'),
   eventController.getManagedEvents
 );
+
+router.get('/events/:id', eventController.getPublicEventDetail);
+
+// Protected (All)
+router.use(authenticateToken);
 
 router.get(
   '/events/:id/participants',

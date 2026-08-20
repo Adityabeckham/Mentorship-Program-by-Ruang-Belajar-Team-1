@@ -152,7 +152,10 @@ const PanitiaDashboard = () => {
     setBannerImage(event.banner_image || '');
     const eventDate = new Date(event.event_date || event.date);
     if (!Number.isNaN(eventDate.getTime())) {
-      setDate(eventDate.toISOString().slice(0, 10));
+      const year = eventDate.getFullYear();
+      const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+      const day = String(eventDate.getDate()).padStart(2, '0');
+      setDate(`${year}-${month}-${day}`);
       setTime(eventDate.toTimeString().slice(0, 5));
     }
     setShowCreateModal(true);
