@@ -76,8 +76,7 @@ API.interceptors.response.use(
 
       if (!refreshToken) {
         clearAuthToken();
-        // Redirect to login page to re-authenticate
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') window.location.href = '/login';
         return Promise.reject(error);
       }
 
@@ -89,7 +88,7 @@ API.interceptors.response.use(
         })
         .catch((err) => {
           clearAuthToken();
-          window.location.href = '/login';
+          if (window.location.pathname !== '/login') window.location.href = '/login';
           return Promise.reject(err);
         });
     }
