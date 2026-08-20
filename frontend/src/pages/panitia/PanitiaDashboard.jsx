@@ -89,6 +89,11 @@ const PanitiaDashboard = () => {
     resetForm();
   }, [resetForm]);
 
+  const openCreateModal = useCallback(() => {
+    resetForm();
+    setShowCreateModal(true);
+  }, [resetForm]);
+
   const handleSubmitEvent = useCallback(async (e) => {
     e.preventDefault();
     setFieldErrors({});
@@ -127,7 +132,7 @@ const PanitiaDashboard = () => {
         : await eventService.createEvent(payload);
       const savedEvent = response?.data || response;
       setEvents((previousEvents) => editingEventId
-        ? previousEvents.map((event) => event.id === editingEventId ? { ...event, ...savedEvent } : event)
+        ? previousEvents.map((event) => event.id === editingEventId ? normalizeEvent({ ...event, ...savedEvent }) : event)
         : [normalizeEvent({ ...savedEvent, peserta: 0, quota: Number(quota) }), ...previousEvents]);
       toast.success(editingEventId ? 'Event berhasil diperbarui.' : 'Draft event berhasil dibuat.');
       closeForm();
@@ -180,7 +185,7 @@ const PanitiaDashboard = () => {
               Seluruh pengajuan event yang telah atau sedang diproses oleh Admin Platform.
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+          <button className="btn btn-primary" onClick={openCreateModal}>
             + Buat Draft Event Baru
           </button>
         </div>
