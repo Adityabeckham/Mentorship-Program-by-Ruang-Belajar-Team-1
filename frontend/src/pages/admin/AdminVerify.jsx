@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import DOMPurify from 'dompurify';
+import eventService from '../../services/eventService';
 
 const INITIAL_EVENTS = [
   { id: 'v-1', org: 'UKM Robotika Kampus', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', status: 'pending_verification', speaker: 'Dr. Eng. Ir. Hendra (Pakar Mekatronika)', quota: 80, registered: 0, location: 'Lab Robotika & Gedung Serbaguna', desc: 'Kompetisi battle bot dan pelatihan pembuatan robot dari dasar hingga tahap pemrograman mikrokontroler.', benefits: ['✨ E-Sertifikat SKKM 5 Poin', '🤖 Kit Komponen Robot dasar', '🏆 Piala & Total Hadiah 5 Juta'] },
@@ -15,6 +15,35 @@ const AdminVerify = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [rejectingEventId, setRejectingEventId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadEvents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const responses = await Promise.all(['pending_verification', 'published', 'rejected'].map(status => eventService.getAdminEvents(status)));
+      const serverEvents = responses.flatMap(response => response.data || []).map(event => ({
+        ...event,
+        org: event.users?.organization_name || event.users?.nama || 'Panitia',
+        date: event.event_date ? new Date(event.event_date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
+        desc: event.description,
+        speaker: event.speaker || '-',
+        location: event.location || '-',
+        quota: event.quota || 0,
+        rejectionReason: event.rejection_reason,
+        benefits: event.benefits || [],
+      }));
+      setEvents(serverEvents);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Data pengajuan event gagal dimuat.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
@@ -25,10 +54,19 @@ const AdminVerify = () => {
     });
   }, [events, filter]);
 
-  const handleApprove = useCallback((id) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, status: 'published' } : e));
-    toast.success('Event telah disetujui & otomatis diterbitkan ke Papan Event!');
-    setSelectedEvent(prev => prev?.id === id ? { ...prev, status: 'published' } : prev);
+  const handleApprove = useCallback(async (id) => {
+    setSubmitting(true);
+    try {
+      const response = await eventService.verifyEvent(id, { action: 'approve' });
+      const updatedEvent = response.data;
+      setEvents(prev => prev.map(event => event.id === id ? { ...event, ...updatedEvent } : event));
+      setSelectedEvent(prev => prev?.id === id ? { ...prev, ...updatedEvent } : prev);
+      toast.success(response.message || 'Event berhasil dipublikasikan.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Event gagal disetujui.');
+    } finally {
+      setSubmitting(false);
+    }
   }, []);
 
   const initiateReject = useCallback((id) => {
@@ -36,16 +74,27 @@ const AdminVerify = () => {
     setRejectReason('');
   }, []);
 
-  const submitReject = useCallback(() => {
+  const submitReject = useCallback(async () => {
     if (!rejectReason.trim()) {
       toast.error('Alasan penolakan wajib diisi.');
       return;
     }
-    const safeReason = DOMPurify.sanitize(rejectReason);
-    setEvents(prev => prev.map(e => e.id === rejectingEventId ? { ...e, status: 'rejected', rejectionReason: safeReason } : e));
-    toast.error('Event telah ditolak.');
-    setSelectedEvent(prev => prev?.id === rejectingEventId ? { ...prev, status: 'rejected', rejectionReason: safeReason } : prev);
-    setRejectingEventId(null);
+    setSubmitting(true);
+    try {
+      const response = await eventService.verifyEvent(rejectingEventId, {
+        action: 'reject',
+        rejection_reason: rejectReason.trim(),
+      });
+      const updatedEvent = response.data;
+      setEvents(prev => prev.map(event => event.id === rejectingEventId ? { ...event, ...updatedEvent, rejectionReason: updatedEvent.rejection_reason } : event));
+      setSelectedEvent(prev => prev?.id === rejectingEventId ? { ...prev, ...updatedEvent, rejectionReason: updatedEvent.rejection_reason } : prev);
+      setRejectingEventId(null);
+      toast.success(response.message || 'Event telah ditolak.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Event gagal ditolak.');
+    } finally {
+      setSubmitting(false);
+    }
   }, [rejectReason, rejectingEventId]);
 
   return (
@@ -95,7 +144,9 @@ const AdminVerify = () => {
           </span>
         </div>
 
-        <div className="table-wrap">
+        {loading ? (
+          <p style={{ padding: '32px', textAlign: 'center' }}>Memuat pengajuan event...</p>
+        ) : <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -155,7 +206,7 @@ const AdminVerify = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </div>}
       </div>
 
       {/* Review Modal */}
@@ -196,7 +247,7 @@ const AdminVerify = () => {
                   {selectedEvent.status === 'rejected' && selectedEvent.rejectionReason && (
                     <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fdecea', border: '1px solid #c9bda2', borderRadius: '8px' }}>
                       <strong style={{ color: '#b5342a', display: 'block', marginBottom: '4px' }}>Alasan Penolakan:</strong>
-                      <div style={{ color: '#87231c', fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: selectedEvent.rejectionReason }} />
+                      <div style={{ color: '#87231c', fontSize: '14px' }}>{selectedEvent.rejectionReason}</div>
                     </div>
                   )}
 
@@ -213,10 +264,10 @@ const AdminVerify = () => {
                 <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedEvent.status === 'pending_verification' && (
                     <>
-                      <button className="btn btn-success" style={{ width: '100%' }} onClick={() => handleApprove(selectedEvent.id)}>
+                      <button className="btn btn-success" style={{ width: '100%' }} disabled={submitting} onClick={() => handleApprove(selectedEvent.id)}>
                         ✅ Setujui &amp; Publikasikan Event
                       </button>
-                      <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => initiateReject(selectedEvent.id)}>
+                      <button className="btn btn-danger" style={{ width: '100%' }} disabled={submitting} onClick={() => initiateReject(selectedEvent.id)}>
                         ❌ Tolak Pengajuan Event
                       </button>
                     </>
@@ -244,11 +295,12 @@ const AdminVerify = () => {
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Tulis alasan mengapa event ini ditolak..."
+                required
               />
             </div>
             <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button className="btn btn-outline dark" onClick={() => setRejectingEventId(null)}>Batal</button>
-              <button className="btn btn-danger" onClick={submitReject}>Tolak Event</button>
+              <button className="btn btn-danger" disabled={submitting || !rejectReason.trim()} onClick={submitReject}>Tolak Event</button>
             </div>
           </div>
         </div>
