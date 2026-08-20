@@ -71,8 +71,6 @@ export const AuthProvider = ({ children }) => {
     setToken('');
     setUser(null);
     clearAuthToken();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
   };
 
   const value = useMemo(

@@ -2,6 +2,18 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../config/supabase');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey123';
+
+const signAccessToken = (payload) => jwt.sign(payload, JWT_SECRET, {
+  expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+});
+
+const signRefreshToken = (payload) => jwt.sign(
+  { ...payload, tokenType: 'refresh' },
+  JWT_SECRET,
+  { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+);
+
 // 1. POST /auth/register
 exports.register = async (req, res, next) => {
   try {
@@ -116,15 +128,15 @@ exports.login = async (req, res, next) => {
       role: user.role,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'supersecretjwtkey123', {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1d',
-    });
+    const token = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Login berhasil',
       token,
+      refreshToken,
       user: {
         id: user.id,
         nama: user.nama,
@@ -137,7 +149,51 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// 3. GET /auth/me
+// 3. POST /auth/refresh
+exports.refresh = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        status: 'fail',
+        statusCode: 401,
+        message: 'Refresh token tidak ditemukan',
+      });
+    }
+
+    const decoded = jwt.verify(refreshToken, JWT_SECRET);
+    if (decoded.tokenType !== 'refresh') {
+      return res.status(401).json({
+        status: 'fail',
+        statusCode: 401,
+        message: 'Refresh token tidak valid',
+      });
+    }
+
+    const { tokenType, iat, exp, ...payload } = decoded;
+    const token = signAccessToken(payload);
+    const nextRefreshToken = signRefreshToken(payload);
+
+    return res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      token,
+      refreshToken: nextRefreshToken,
+    });
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        status: 'fail',
+        statusCode: 401,
+        message: 'Refresh token tidak valid atau sudah kadaluarsa',
+      });
+    }
+    return next(err);
+  }
+};
+
+// 4. GET /auth/me
 exports.getMe = async (req, res, next) => {
   try {
     // req.user diset oleh authenticateToken middleware
@@ -165,4 +221,4 @@ exports.getMe = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+};
