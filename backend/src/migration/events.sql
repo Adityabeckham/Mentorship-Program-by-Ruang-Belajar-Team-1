@@ -2,6 +2,9 @@ CREATE TABLE IF NOT EXISTS events (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    category VARCHAR(100),
+    speaker VARCHAR(255),
+    banner_image TEXT,
     location VARCHAR(255) NOT NULL,
     event_date TIMESTAMP WITH TIME ZONE NOT NULL,
     quota INT NOT NULL CHECK (quota >= 0),
@@ -13,3 +16,7 @@ CREATE TABLE IF NOT EXISTS events (
     CONSTRAINT fk_events_creator FOREIGN KEY (created_by) 
         REFERENCES users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100);
+ALTER TABLE events ADD COLUMN IF NOT EXISTS speaker VARCHAR(255);
+ALTER TABLE events ADD COLUMN IF NOT EXISTS banner_image TEXT;

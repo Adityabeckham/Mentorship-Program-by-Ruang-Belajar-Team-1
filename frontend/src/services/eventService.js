@@ -11,6 +11,11 @@ export const eventService = {
     return response.data;
   },
 
+  getManagedEvents: async () => {
+    const response = await apiService.get('/events/manage');
+    return response.data;
+  },
+
   createEvent: async (payload) => {
     const response = await apiService.post('/panitia/events', payload);
     return response.data;

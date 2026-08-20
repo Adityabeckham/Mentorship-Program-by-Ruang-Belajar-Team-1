@@ -3,6 +3,8 @@ const { body } = require('express-validator');
 exports.createEventValidation = [
   body('title').trim().notEmpty().withMessage('Judul event wajib diisi'),
   body('description').trim().notEmpty().withMessage('Deskripsi wajib diisi'),
+  body('category').trim().notEmpty().withMessage('Kategori wajib diisi'),
+  body('speaker').trim().notEmpty().withMessage('Narasumber wajib diisi'),
   body('location').trim().notEmpty().withMessage('Lokasi wajib diisi'),
   body('event_date')
     .notEmpty()

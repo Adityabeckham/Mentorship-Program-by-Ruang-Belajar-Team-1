@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
 import DOMPurify from 'dompurify';
@@ -16,14 +16,22 @@ const eventSchema = yup.object().shape({
   bannerImage: yup.string().url('URL banner tidak valid.').nullable().transform((value) => value || null),
 });
 
-const INITIAL_EVENTS = [
-  { id: 'p-1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026, 09:00', event_date: '2026-08-20T09:00:00', status: 'published', peserta: 98, quota: 100, category: 'Technology', speaker: 'Budi Rahardjo', location: 'Auditorium Utama', desc: 'Seminar karier dan teknologi.' },
-  { id: 'p-2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', event_date: '2026-08-22T09:00:00', status: 'pending_verification', peserta: 0, quota: 80, category: 'Technology', speaker: 'Dr. Eng. Ir. Hendra', location: 'Lab Robotika', desc: 'Bootcamp robotika kampus.' },
-  { id: 'p-3', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', event_date: '2026-09-01T08:00:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek', location: 'Gedung Inovasi', desc: 'Kompetisi aplikasi kampus.' },
-];
+const formatEventDate = (eventDate) => {
+  const parsed = new Date(eventDate);
+  return Number.isNaN(parsed.getTime())
+    ? '-'
+    : parsed.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const normalizeEvent = (event) => ({
+  ...event,
+  date: formatEventDate(event.event_date),
+  peserta: event.peserta || event.registered || 0,
+  desc: event.description || '',
+});
 
 const PanitiaDashboard = () => {
-  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [events, setEvents] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
 
@@ -38,6 +46,22 @@ const PanitiaDashboard = () => {
   const [desc, setDesc] = useState('');
   const [bannerImage, setBannerImage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    eventService.getManagedEvents()
+      .then((response) => {
+        if (isMounted) setEvents((response.data || []).map(normalizeEvent));
+      })
+      .catch((error) => {
+        if (isMounted) toast.error(error.response?.data?.message || 'Event gagal dimuat.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const stats = useMemo(() => [
     { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
@@ -92,6 +116,8 @@ const PanitiaDashboard = () => {
       location: DOMPurify.sanitize(location),
       event_date: `${date}T${time}:00`,
       quota: Number(quota),
+      category,
+      speaker: DOMPurify.sanitize(speaker),
       banner_image: DOMPurify.sanitize(bannerImage),
     };
 
@@ -102,7 +128,7 @@ const PanitiaDashboard = () => {
       const savedEvent = response?.data || response;
       setEvents((previousEvents) => editingEventId
         ? previousEvents.map((event) => event.id === editingEventId ? { ...event, ...savedEvent } : event)
-        : [{ ...savedEvent, peserta: 0, quota: Number(quota), date: `${date}, ${time}` }, ...previousEvents]);
+        : [normalizeEvent({ ...savedEvent, peserta: 0, quota: Number(quota) }), ...previousEvents]);
       toast.success(editingEventId ? 'Event berhasil diperbarui.' : 'Draft event berhasil dibuat.');
       closeForm();
     } catch (error) {
