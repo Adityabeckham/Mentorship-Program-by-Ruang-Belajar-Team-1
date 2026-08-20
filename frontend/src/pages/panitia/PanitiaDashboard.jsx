@@ -119,7 +119,7 @@ const PanitiaDashboard = () => {
       title: DOMPurify.sanitize(title),
       description: DOMPurify.sanitize(desc),
       location: DOMPurify.sanitize(location),
-      event_date: `${date}T${time}:00`,
+      event_date: new Date(`${date}T${time}:00`).toISOString(),
       quota: Number(quota),
       category,
       speaker: DOMPurify.sanitize(speaker),
