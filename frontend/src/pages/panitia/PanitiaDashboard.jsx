@@ -14,10 +14,26 @@ const eventSchema = yup.object().shape({
   desc: yup.string().required('Deskripsi singkat acara wajib diisi.'),
 });
 
+const MONTHS_ID = {
+  Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, Jun: 5,
+  Jul: 6, Agt: 7, Sep: 8, Okt: 9, Nov: 10, Des: 11,
+};
+
+const toDateTimeInput = (value) => {
+  const localizedMatch = String(value || '').match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4}),\s+(\d{2}:\d{2})$/);
+  const parsed = localizedMatch
+    ? new Date(Number(localizedMatch[3]), MONTHS_ID[localizedMatch[2]], Number(localizedMatch[1]), ...localizedMatch[4].split(':').map(Number))
+    : new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) return '';
+  const offset = parsed.getTimezoneOffset() * 60000;
+  return new Date(parsed.getTime() - offset).toISOString().slice(0, 16);
+};
+
 const INITIAL_EVENTS = [
-  { id: 'p-1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026, 09:00', status: 'published', peserta: 98, quota: 100, category: 'Technology', speaker: 'Budi Rahardjo' },
-  { id: 'p-2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', status: 'pending_verification', peserta: 0, quota: 80, category: 'Technology', speaker: 'Dr. Eng. Ir. Hendra' },
-  { id: 'p-3', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek' },
+  { id: 'p-1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026, 09:00', eventDate: '2026-08-20T09:00', status: 'published', peserta: 98, quota: 100, category: 'Technology', speaker: 'Budi Rahardjo' },
+  { id: 'p-2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026, 09:00', eventDate: '2026-08-22T09:00', status: 'pending_verification', peserta: 0, quota: 80, category: 'Technology', speaker: 'Dr. Eng. Ir. Hendra' },
+  { id: 'p-3', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026, 08:00', eventDate: '2026-09-01T08:00', status: 'rejected', peserta: 0, quota: 60, category: 'Technology', speaker: 'Senior Architect Gojek' },
 ];
 
 const PanitiaDashboard = () => {
@@ -35,6 +51,33 @@ const PanitiaDashboard = () => {
   const [date, setDate] = useState('');
   const [desc, setDesc] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const resetForm = useCallback(() => {
+    setEditingEventId(null);
+    setTitle('');
+    setCategory('Technology');
+    setSpeaker('');
+    setQuota('100');
+    setLocation('');
+    setDate('');
+    setDesc('');
+    setFieldErrors({});
+  }, []);
+
+  const openCreateModal = useCallback(() => {
+    resetForm();
+    setShowCreateModal(true);
+  }, [resetForm]);
+
+  const closeCreateModal = useCallback(() => {
+    setShowCreateModal(false);
+    resetForm();
+  }, [resetForm]);
+
+  const closeEditModal = useCallback(() => {
+    setShowEditModal(false);
+    resetForm();
+  }, [resetForm]);
 
   const stats = useMemo(() => [
     { num: String(events.length), lbl: 'Total Event', accent: 'navy' },
@@ -69,6 +112,7 @@ const PanitiaDashboard = () => {
       title: DOMPurify.sanitize(title),
       date: new Date(date).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
       status: 'draft',
+      eventDate: date,
       peserta: 0,
       quota: parseInt(quota) || 100,
       category,
@@ -78,13 +122,8 @@ const PanitiaDashboard = () => {
 
     setEvents(prev => [newEvent, ...prev]);
     toast.success('Draft event berhasil disimpan. Ajukan untuk verifikasi saat sudah siap.');
-    setShowCreateModal(false);
-    setTitle('');
-    setSpeaker('');
-    setLocation('');
-    setDate('');
-    setDesc('');
-  }, [title, category, speaker, quota, location, date, desc]);
+    closeCreateModal();
+  }, [title, category, speaker, quota, location, date, desc, closeCreateModal]);
 
   const handleEditClick = useCallback((ev) => {
     setEditingEventId(ev.id);
@@ -93,14 +132,7 @@ const PanitiaDashboard = () => {
     setSpeaker(ev.speaker);
     setQuota(String(ev.quota || 100));
     setLocation(ev.location || '');
-    // convert ev.date back to input-friendly format when possible
-    try {
-      const parsed = new Date(ev.date);
-      const iso = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000).toISOString().slice(0,16);
-      setDate(iso);
-    } catch {
-      setDate('');
-    }
+    setDate(toDateTimeInput(ev.eventDate || ev.date));
     setDesc(ev.desc || '');
     setShowEditModal(true);
   }, []);
@@ -135,16 +167,15 @@ const PanitiaDashboard = () => {
         speaker: DOMPurify.sanitize(speaker),
         quota: parseInt(quota) || ev.quota,
         location: DOMPurify.sanitize(location),
+        eventDate: date,
         date: new Date(date).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
         desc: DOMPurify.sanitize(desc),
       };
     }));
 
     toast.success('Perubahan event berhasil disimpan.');
-    setShowEditModal(false);
-    setEditingEventId(null);
-    setTitle(''); setSpeaker(''); setLocation(''); setDate(''); setDesc('');
-  }, [title, category, speaker, quota, location, date, desc, editingEventId]);
+    closeEditModal();
+  }, [title, category, speaker, quota, location, date, desc, editingEventId, closeEditModal]);
 
   const handleSubmitVerification = useCallback((id) => {
     setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'pending_verification' } : ev));
@@ -185,7 +216,7 @@ const PanitiaDashboard = () => {
               Seluruh pengajuan event yang telah atau sedang diproses oleh Admin Platform.
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+          <button className="btn btn-primary" onClick={openCreateModal}>
             + Buat Draft Event Baru
           </button>
         </div>
@@ -256,9 +287,9 @@ const PanitiaDashboard = () => {
 
       {/* Create Event Modal */}
       {showCreateModal && (
-        <div className="modal-backdrop" onClick={() => setShowCreateModal(false)}>
+        <div className="modal-backdrop" onClick={closeCreateModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
-            <button className="modal-close" onClick={() => setShowCreateModal(false)}>✕</button>
+            <button className="modal-close" onClick={closeCreateModal}>✕</button>
 
             <div className="eyebrow" style={{ color: '#8a7355', marginBottom: '4px' }}>Pengajuan Event Baru</div>
             <h2>Formulir Draft Event Kampus</h2>
@@ -351,7 +382,7 @@ const PanitiaDashboard = () => {
               </div>
 
               <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-outline dark" onClick={() => setShowCreateModal(false)}>
+                <button type="button" className="btn btn-outline dark" onClick={closeCreateModal}>
                   Batal
                 </button>
                 <button type="submit" className="btn btn-primary">
@@ -365,9 +396,9 @@ const PanitiaDashboard = () => {
 
       {/* Edit Event Modal */}
       {showEditModal && (
-        <div className="modal-backdrop" onClick={() => setShowEditModal(false)}>
+        <div className="modal-backdrop" onClick={closeEditModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
-            <button className="modal-close" onClick={() => setShowEditModal(false)}>✕</button>
+            <button className="modal-close" onClick={closeEditModal}>✕</button>
 
             <div className="eyebrow" style={{ color: '#8a7355', marginBottom: '4px' }}>Edit Draft Event</div>
             <h2>Ubah Detail Event</h2>
@@ -460,7 +491,7 @@ const PanitiaDashboard = () => {
               </div>
 
               <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-outline dark" onClick={() => setShowEditModal(false)}>
+                <button type="button" className="btn btn-outline dark" onClick={closeEditModal}>
                   Batal
                 </button>
                 <button type="submit" className="btn btn-primary">
