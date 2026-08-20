@@ -128,4 +128,22 @@ describe('Auth Endpoints & Security', () => {
       expect(res.body.message).toContain('Kredensial tidak valid');
     });
   });
+
+  describe('POST /auth/refresh', () => {
+    it('should issue a new access token from a valid refresh token', async () => {
+      const refreshToken = jwt.sign(
+        { id: 1, role: 'mahasiswa', tokenType: 'refresh' },
+        process.env.JWT_SECRET || 'supersecretjwtkey123',
+        { expiresIn: '7d' }
+      );
+
+      const res = await request(app)
+        .post('/auth/refresh')
+        .send({ refreshToken });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.refreshToken).toBeDefined();
+    });
+  });
 });

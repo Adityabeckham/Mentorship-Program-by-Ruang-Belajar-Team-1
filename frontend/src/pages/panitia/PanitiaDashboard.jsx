@@ -37,6 +37,7 @@ const INITIAL_EVENTS = [
 ];
 
 const PanitiaDashboard = () => {
+  useAuth();
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

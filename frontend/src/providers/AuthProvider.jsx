@@ -3,11 +3,20 @@ import API, { clearAuthToken, setAuthToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
+const getSavedUser = () => {
+  const savedUser = localStorage.getItem('user');
+  if (!savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser);
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState(getSavedUser);
 
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
   const [loading, setLoading] = useState(true);
@@ -20,7 +29,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await API.get('/auth/me');
           setUser(response.data.data);
-        } catch (error) {
+        } catch {
           logout();
         }
       }
@@ -71,8 +80,6 @@ export const AuthProvider = ({ children }) => {
     setToken('');
     setUser(null);
     clearAuthToken();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
   };
 
   const value = useMemo(

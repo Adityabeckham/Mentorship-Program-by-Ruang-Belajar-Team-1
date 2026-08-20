@@ -11,6 +11,18 @@ export const eventService = {
     return response.data;
   },
 
+  getAdminEvents: async (status) => {
+    const response = await apiService.get('/admin/events', {
+      params: status ? { status } : undefined,
+    });
+    return response.data;
+  },
+
+  verifyEvent: async (id, payload) => {
+    const response = await apiService.patch(`/admin/events/${id}/verify`, payload);
+    return response.data;
+  },
+
   createEvent: async (payload) => {
     const response = await apiService.post('/events', payload);
     return response.data;
