@@ -35,7 +35,7 @@ exports.updateEventStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['draft', 'published', 'completed', 'canceled'];
+    const validStatuses = ['draft', 'pending_verification', 'published', 'completed', 'rejected', 'canceled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         status: 'fail',

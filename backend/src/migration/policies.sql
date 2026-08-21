@@ -42,7 +42,7 @@ WITH CHECK (public.get_my_role() = 'admin');
 DROP POLICY IF EXISTS "Public/Mahasiswa can view published events" ON public.events;
 CREATE POLICY "Public/Mahasiswa can view published events" 
 ON public.events FOR SELECT 
-USING (status::text = 'published' OR public.get_my_role() IN ('panitia', 'admin'));
+USING ((status::text = 'published' AND deleted_at IS NULL) OR public.get_my_role() IN ('panitia', 'admin'));
 
 DROP POLICY IF EXISTS "Panitia can create events" ON public.events;
 CREATE POLICY "Panitia can create events" 
