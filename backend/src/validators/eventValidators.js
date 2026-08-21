@@ -22,6 +22,6 @@ exports.updateStatusValidation = [
   body('status')
     .notEmpty()
     .withMessage('Status wajib diisi')
-    .isIn(['draft', 'pending_verification', 'published', 'completed', 'rejected', 'canceled'])
+    .isIn(['draft', 'published', 'completed', 'canceled'])
     .withMessage('Status event tidak valid'),
 ];
