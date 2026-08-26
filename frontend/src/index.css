@@ -376,7 +376,9 @@ main.main-board {
   align-items: center;
 }
 
-.filter-row input {
+.filter-row input,
+.toolbar input,
+.search-input {
   flex: 1;
   min-width: 240px;
   padding: 11px 18px;
@@ -384,12 +386,24 @@ main.main-board {
   border: 2px solid transparent;
   font-size: 14px;
   outline: none;
+  background: #fffdf8;
+  color: var(--ink);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.2s;
   font-family: inherit;
 }
 
-.filter-row input:focus {
+.filter-row input::placeholder,
+.toolbar input::placeholder,
+.search-input::placeholder {
+  color: #8a7355;
+  opacity: 0.85;
+}
+
+.filter-row input:focus,
+.toolbar input:focus,
+.search-input:focus {
+  background: #ffffff;
   border-color: var(--paper-yellow);
   box-shadow: 0 4px 16px rgba(246, 201, 69, 0.3);
 }
