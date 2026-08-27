@@ -7,7 +7,7 @@ exports.getManagedEvents = async (req, res, next) => {
 
     let query = supabase
       .from('events')
-      .select('id, title, description, location, event_date, quota, status, created_by, created_at')
+      .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_by, created_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -82,7 +82,7 @@ exports.getPublicEvents = async (req, res, next) => {
 
     let query = supabase
       .from('events')
-      .select('id, title, description, location, event_date, quota, status, created_at', { count: 'exact' })
+      .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at', { count: 'exact' })
       .eq('status', 'published')
       .is('deleted_at', null)
       .order('event_date', { ascending: true });
@@ -121,7 +121,7 @@ exports.getPublicEventDetail = async (req, res, next) => {
 
     const { data: event, error } = await supabase
       .from('events')
-      .select('id, title, description, location, event_date, quota, status, created_at')
+      .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at')
       .eq('id', id)
       .eq('status', 'published')
       .is('deleted_at', null)
@@ -148,7 +148,7 @@ exports.getPublicEventDetail = async (req, res, next) => {
 // 5. POST /panitia/events (Buat Event)
 exports.createEvent = async (req, res, next) => {
   try {
-    const { title, description, location, event_date, quota } = req.body;
+    const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
     const panitiaId = req.user.id;
 
     const { data: newEvent, error } = await supabase
@@ -157,6 +157,9 @@ exports.createEvent = async (req, res, next) => {
         {
           title,
           description,
+          category,
+          speaker,
+          banner_image,
           location,
           event_date,
           quota,
@@ -185,7 +188,7 @@ exports.updateEvent = async (req, res, next) => {
   try {
     const { id } = req.params;
     const panitiaId = req.user.id;
-    const { title, description, location, event_date, quota, status } = req.body;
+    const { title, description, category, speaker, banner_image, location, event_date, quota, status } = req.body;
 
     const { data: existingEvent, error: findError } = await supabase
       .from('events')
@@ -215,6 +218,9 @@ exports.updateEvent = async (req, res, next) => {
       .update({
         ...(title && { title }),
         ...(description && { description }),
+        ...(category && { category }),
+        ...(speaker && { speaker }),
+        ...(banner_image !== undefined && { banner_image }),
         ...(location && { location }),
         ...(event_date && { event_date }),
         ...(quota && { quota }),

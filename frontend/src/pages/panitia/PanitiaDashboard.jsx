@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
 import DOMPurify from 'dompurify';
@@ -52,6 +52,7 @@ const PanitiaDashboard = () => {
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [updatingAttendanceId, setUpdatingAttendanceId] = useState(null);
+  const participantRequestRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -168,16 +169,21 @@ const PanitiaDashboard = () => {
   }, []);
 
   const handleViewParticipants = useCallback(async (eventId) => {
+    const requestId = participantRequestRef.current + 1;
+    participantRequestRef.current = requestId;
     setSelectedEventId(eventId);
+    setParticipants([]);
     setLoadingParticipants(true);
     try {
       const response = await eventService.getEventParticipants(eventId);
-      setParticipants(response.data || []);
+      if (participantRequestRef.current === requestId) setParticipants(response.data || []);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Peserta gagal dimuat.');
-      setParticipants([]);
+      if (participantRequestRef.current === requestId) {
+        toast.error(error.response?.data?.message || 'Peserta gagal dimuat.');
+        setParticipants([]);
+      }
     } finally {
-      setLoadingParticipants(false);
+      if (participantRequestRef.current === requestId) setLoadingParticipants(false);
     }
   }, []);
 
