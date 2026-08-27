@@ -8,7 +8,7 @@ if (!connectionString) {
 }
 
 // Konfigurasi postgres connection pool yang scalable untuk production & cloud DB (Supabase)
-const sql = postgres(connectionString || 'postgres://postgres:postgres@localhost:5432/eventhub', {
+const sql = postgres(connectionString, {
   max: 10,                 // Maksimum koneksi aktif di pool
   idle_timeout: 20,        // Waktu tunggu idle sebelum koneksi ditutup (detik)
   connect_timeout: 10,     // Waktu batas timeout koneksi (detik)

@@ -1,14 +1,10 @@
-require('dotenv').config();
+const { SUPABASE_URL, SUPABASE_KEY } = require('./env');
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-// Gunakan Service Role Key untuk operasi backend aman (bypass RLS jika diperlukan dari server)
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('⚠️ Warning: SUPABASE_URL atau SUPABASE_KEY belum dikonfigurasi di .env!');
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error(' Warning: SUPABASE_URL atau SUPABASE_KEY belum dikonfigurasi di .env!');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 module.exports = supabase;
