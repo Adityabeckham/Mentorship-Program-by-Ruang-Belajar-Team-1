@@ -23,3 +23,4 @@ Thumbs.db
 dist/
 build/
 *.log
+frontend/test-results/
