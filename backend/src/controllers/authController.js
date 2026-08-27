@@ -4,13 +4,13 @@ const supabase = require('../config/supabase');
 const { JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN } = require('../config/env');
 
 const signAccessToken = (payload) => jwt.sign(payload, JWT_SECRET, {
-  expiresIn: JWT_EXPIRES_IN,
+  expiresIn: JWT_EXPIRES_IN || '1d',
 });
 
 const signRefreshToken = (payload) => jwt.sign(
   { ...payload, tokenType: 'refresh' },
   JWT_REFRESH_SECRET,
-  { expiresIn: JWT_REFRESH_EXPIRES_IN }
+  { expiresIn: JWT_REFRESH_EXPIRES_IN || '7d' }
 );
 
 // 1. POST /auth/register
