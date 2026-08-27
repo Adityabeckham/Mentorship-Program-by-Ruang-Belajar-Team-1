@@ -39,7 +39,7 @@ describe('Auth Endpoints & Security', () => {
     it('should verify password hashing uses bcrypt with salt', async () => {
       supabase.maybeSingle.mockResolvedValueOnce({ data: null }); // No existing user
       supabase.single.mockResolvedValueOnce({ data: { id: 1, email: 'test@test.com' }, error: null });
-      
+
       await request(app)
         .post('/auth/register')
         .send({ nama: 'Test', email: 'test@test.com', password: 'password123' });
@@ -50,13 +50,13 @@ describe('Auth Endpoints & Security', () => {
 
     it('should verify token generation uses proper expiration', async () => {
       // Mock existing user for login
-      supabase.maybeSingle.mockResolvedValueOnce({ 
-        data: { id: 1, email: 'test@test.com', password: 'hashedPassword123', role: 'mahasiswa' } 
+      supabase.maybeSingle.mockResolvedValueOnce({
+        data: { id: 1, email: 'test@test.com', password: 'hashedPassword123', role: 'mahasiswa' }
       });
       bcrypt.compare.mockResolvedValueOnce(true); // Password is valid
-      
+
       const jwtSpy = jest.spyOn(jwt, 'sign');
-      
+
       await request(app)
         .post('/auth/login')
         .send({ email: 'test@test.com', password: 'password123' });
@@ -72,9 +72,9 @@ describe('Auth Endpoints & Security', () => {
   describe('POST /auth/register', () => {
     it('should register a new user successfully', async () => {
       supabase.maybeSingle.mockResolvedValueOnce({ data: null }); // No existing user
-      supabase.single.mockResolvedValueOnce({ 
+      supabase.single.mockResolvedValueOnce({
         data: { id: 1, nama: 'Test User', email: 'test@test.com', role: 'mahasiswa' },
-        error: null 
+        error: null
       });
 
       const res = await request(app)
@@ -100,8 +100,8 @@ describe('Auth Endpoints & Security', () => {
 
   describe('POST /auth/login', () => {
     it('should login successfully with valid credentials', async () => {
-      supabase.maybeSingle.mockResolvedValueOnce({ 
-        data: { id: 1, nama: 'Test User', email: 'test@test.com', password: 'hashedPassword123', role: 'mahasiswa' } 
+      supabase.maybeSingle.mockResolvedValueOnce({
+        data: { id: 1, nama: 'Test User', email: 'test@test.com', password: 'hashedPassword123', role: 'mahasiswa' }
       });
       bcrypt.compare.mockResolvedValueOnce(true); // Valid password
 
@@ -115,8 +115,8 @@ describe('Auth Endpoints & Security', () => {
     });
 
     it('should return 401 with invalid credentials', async () => {
-      supabase.maybeSingle.mockResolvedValueOnce({ 
-        data: { id: 1, password: 'hashedPassword123' } 
+      supabase.maybeSingle.mockResolvedValueOnce({
+        data: { id: 1, password: 'hashedPassword123' }
       });
       bcrypt.compare.mockResolvedValueOnce(false); // Invalid password
 
@@ -133,7 +133,7 @@ describe('Auth Endpoints & Security', () => {
     it('should issue a new access token from a valid refresh token', async () => {
       const refreshToken = jwt.sign(
         { id: 1, role: 'mahasiswa', tokenType: 'refresh' },
-        process.env.JWT_SECRET || 'supersecretjwtkey123',
+        process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
 

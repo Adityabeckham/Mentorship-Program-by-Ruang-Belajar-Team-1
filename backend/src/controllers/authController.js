@@ -1,17 +1,16 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../config/supabase');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey123';
+const { JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN } = require('../config/env');
 
 const signAccessToken = (payload) => jwt.sign(payload, JWT_SECRET, {
-  expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+  expiresIn: JWT_EXPIRES_IN,
 });
 
 const signRefreshToken = (payload) => jwt.sign(
   { ...payload, tokenType: 'refresh' },
-  JWT_SECRET,
-  { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+  JWT_REFRESH_SECRET,
+  { expiresIn: JWT_REFRESH_EXPIRES_IN }
 );
 
 // 1. POST /auth/register
@@ -21,20 +20,20 @@ exports.register = async (req, res, next) => {
 
     // Validation
     if (!nama || !email || !password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: 'Nama, email, dan password wajib diisi' 
+        message: 'Nama, email, dan password wajib diisi'
       });
     }
 
     // Sanitize & validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: 'Format email tidak valid' 
+        message: 'Format email tidak valid'
       });
     }
 
@@ -46,10 +45,10 @@ exports.register = async (req, res, next) => {
       .maybeSingle();
 
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: 'Email sudah terdaftar' 
+        message: 'Email sudah terdaftar'
       });
     }
 
@@ -90,10 +89,10 @@ exports.login = async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: 'Email dan password wajib diisi' 
+        message: 'Email dan password wajib diisi'
       });
     }
 
@@ -105,20 +104,20 @@ exports.login = async (req, res, next) => {
       .maybeSingle();
 
     if (error || !user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         status: 'fail',
         statusCode: 401,
-        message: 'Kredensial tidak valid (email/password salah)' 
+        message: 'Kredensial tidak valid (email/password salah)'
       });
     }
 
     // Membandingkan password inputan dengan hashed password di database
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         status: 'fail',
         statusCode: 401,
-        message: 'Kredensial tidak valid (email/password salah)' 
+        message: 'Kredensial tidak valid (email/password salah)'
       });
     }
 
@@ -162,7 +161,12 @@ exports.refresh = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(refreshToken, JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    } catch (e) {
+      decoded = jwt.verify(refreshToken, JWT_SECRET);
+    }
     if (decoded.tokenType !== 'refresh') {
       return res.status(401).json({
         status: 'fail',
