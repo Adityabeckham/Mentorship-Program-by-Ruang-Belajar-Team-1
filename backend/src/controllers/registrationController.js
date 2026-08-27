@@ -78,15 +78,14 @@ const getMyRegistrations = async (req, res, next) => {
 const updateAttendance = async (req, res, next) => {
   try {
     const { registration_id } = req.params;
-    const { status } = req.body;
+    const { is_present } = req.body;
     const { id: userId, role } = req.user;
 
-    const validStatuses = ['attended', 'absent'];
-    if (!status || !validStatuses.includes(status)) {
+    if (typeof is_present !== 'boolean') {
       return res.status(400).json({
         status: 'fail',
         statusCode: 400,
-        message: `Status kehadiran tidak valid. Gunakan: ${validStatuses.join(', ')}`,
+        message: 'is_present wajib berupa boolean.',
       });
     }
 
@@ -122,12 +121,15 @@ const updateAttendance = async (req, res, next) => {
       }
     }
 
-    // Update status kehadiran
-    const { data: updatedRegistration, error: updateError } = await supabase
-      .from('registrations')
-      .update({ status })
-      .eq('id', registration_id)
-      .select()
+    const { data: attendance, error: updateError } = await supabase
+      .from('attendance')
+      .upsert({
+        registration_id,
+        is_present,
+        checked_by: userId,
+        checked_at: new Date(),
+      }, { onConflict: 'registration_id' })
+      .select('registration_id, is_present, checked_at')
       .single();
 
     if (updateError) throw updateError;
@@ -135,8 +137,8 @@ const updateAttendance = async (req, res, next) => {
     return res.status(200).json({
       status: 'success',
       statusCode: 200,
-      message: `Status kehadiran berhasil diubah menjadi ${status}.`,
-      data: updatedRegistration,
+      message: 'Presensi peserta berhasil diperbarui.',
+      data: attendance,
     });
   } catch (err) {
     next(err);

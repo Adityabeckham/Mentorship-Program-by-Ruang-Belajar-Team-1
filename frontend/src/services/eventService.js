@@ -16,6 +16,11 @@ export const eventService = {
     return response.data;
   },
 
+  getEventParticipants: async (id) => {
+    const response = await apiService.get(`/events/${id}/participants`);
+    return response.data;
+  },
+
   getAdminEvents: async (status) => {
     const response = await apiService.get('/admin/events', {
       params: status ? { status } : undefined,
