@@ -670,6 +670,23 @@ main.main-board {
   margin-bottom: 16px;
 }
 
+.attendance-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attendance-filter select {
+  border: 1px solid #c9bda8;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fffdf8;
+  color: var(--ink);
+  font: inherit;
+}
+
 /* ---------- Table Styling ---------- */
 .table-wrap {
   overflow-x: auto;

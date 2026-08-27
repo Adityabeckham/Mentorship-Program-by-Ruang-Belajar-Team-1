@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
 import DOMPurify from 'dompurify';
 import eventService from '../../services/eventService';
+import attendanceService from '../../services/attendanceService';
 
 const eventSchema = yup.object().shape({
   title: yup.string().required('Judul event wajib diisi.'),
@@ -46,6 +47,12 @@ const PanitiaDashboard = () => {
   const [desc, setDesc] = useState('');
   const [bannerImage, setBannerImage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [attendanceFilter, setAttendanceFilter] = useState('all');
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [updatingAttendanceId, setUpdatingAttendanceId] = useState(null);
+  const participantRequestRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -161,6 +168,50 @@ const PanitiaDashboard = () => {
     setShowCreateModal(true);
   }, []);
 
+  const handleViewParticipants = useCallback(async (eventId) => {
+    const requestId = participantRequestRef.current + 1;
+    participantRequestRef.current = requestId;
+    setSelectedEventId(eventId);
+    setParticipants([]);
+    setLoadingParticipants(true);
+    try {
+      const response = await eventService.getEventParticipants(eventId);
+      if (participantRequestRef.current === requestId) setParticipants(response.data || []);
+    } catch (error) {
+      if (participantRequestRef.current === requestId) {
+        toast.error(error.response?.data?.message || 'Peserta gagal dimuat.');
+        setParticipants([]);
+      }
+    } finally {
+      if (participantRequestRef.current === requestId) setLoadingParticipants(false);
+    }
+  }, []);
+
+  const handleAttendanceToggle = useCallback(async (participant) => {
+    const isPresent = !participant.is_present;
+    setUpdatingAttendanceId(participant.registration_id);
+    try {
+      const response = await attendanceService.markAttendance(participant.registration_id, isPresent);
+      setParticipants((current) => current.map((item) => item.registration_id === participant.registration_id
+        ? { ...item, is_present: response.data.is_present }
+        : item));
+      toast.success(isPresent ? 'Peserta ditandai hadir.' : 'Status kehadiran dibatalkan.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Status kehadiran gagal diperbarui.');
+    } finally {
+      setUpdatingAttendanceId(null);
+    }
+  }, []);
+
+  const visibleParticipants = participants.filter((participant) => {
+    const isPresent = participant.is_present === true;
+    if (attendanceFilter === 'present') return isPresent;
+    if (attendanceFilter === 'absent') return !isPresent;
+    return true;
+  });
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId);
+
   return (
     <div className="page-fade">
       {/* Title Header */}
@@ -220,6 +271,9 @@ const PanitiaDashboard = () => {
                     {ev.peserta} / {ev.quota} Peserta
                   </td>
                   <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-navy btn-sm" onClick={() => handleViewParticipants(ev.id)}>
+                        👥 Absensi
+                      </button>
                       <button className="btn btn-outline dark btn-sm" onClick={() => handleEditEvent(ev)}>
                         ✏️ Edit
                       </button>
@@ -236,6 +290,61 @@ const PanitiaDashboard = () => {
           </table>
         </div>
       </div>
+
+      {selectedEventId && (
+        <div className="card attendance-card">
+          <div className="toolbar">
+            <div>
+              <span className="eyebrow" style={{ color: '#8a7355' }}>Daftar Kehadiran</span>
+              <h3>{selectedEvent?.title || 'Peserta Event'}</h3>
+              <p style={{ fontSize: '12.5px', color: '#8a7355', margin: 0 }}>
+                Tandai kehadiran peserta secara langsung.
+              </p>
+            </div>
+            <label className="attendance-filter">
+              <span>Filter status</span>
+              <select value={attendanceFilter} onChange={(event) => setAttendanceFilter(event.target.value)}>
+                <option value="all">Semua peserta</option>
+                <option value="present">Hadir</option>
+                <option value="absent">Belum Hadir</option>
+              </select>
+            </label>
+          </div>
+
+          {loadingParticipants ? <p>Memuat daftar peserta...</p> : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Nama</th><th>Email (Identitas Kampus)</th><th>Status Presensi</th><th style={{ textAlign: 'right' }}>Aksi</th></tr>
+                </thead>
+                <tbody>
+                  {visibleParticipants.map((participant) => {
+                    const isPresent = participant.is_present === true;
+                    return (
+                      <tr key={participant.registration_id}>
+                        <td><strong>{participant.student_name || '-'}</strong></td>
+                        <td>{participant.student_email || '-'}</td>
+                        <td><span className={`badge ${isPresent ? 'hadir' : 'belum'}`}>{isPresent ? 'Hadir' : 'Belum Hadir'}</span></td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            className={`btn btn-sm ${isPresent ? 'btn-outline dark' : 'btn-success'}`}
+                            onClick={() => handleAttendanceToggle(participant)}
+                            disabled={updatingAttendanceId === participant.registration_id}
+                            aria-label={`Tandai ${participant.student_name || 'peserta'} ${isPresent ? 'belum hadir' : 'hadir'}`}
+                          >
+                            {updatingAttendanceId === participant.registration_id ? 'Menyimpan...' : isPresent ? 'Batalkan' : 'Tandai Hadir'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!visibleParticipants.length && <tr><td colSpan="4">Tidak ada peserta pada filter ini.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Create Event Modal */}
       {showCreateModal && (

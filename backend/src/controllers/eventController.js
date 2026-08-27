@@ -77,7 +77,6 @@ exports.getPublicEvents = async (req, res, next) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const search = req.query.search || '';
-    const category = req.query.category || '';
 
     const offset = (page - 1) * limit;
 
@@ -90,10 +89,6 @@ exports.getPublicEvents = async (req, res, next) => {
 
     if (search) {
       query = query.or(`title.ilike.%${search}%,location.ilike.%${search}%`);
-    }
-
-    if (category) {
-      query = query.eq('category', category);
     }
 
     query = query.range(offset, offset + limit - 1);
@@ -326,6 +321,7 @@ exports.getEventParticipants = async (req, res, next) => {
         id,
         status,
         registered_at,
+        attendance ( id, is_present, checked_at ),
         users (
           id,
           nama,
@@ -337,11 +333,21 @@ exports.getEventParticipants = async (req, res, next) => {
 
     if (error) throw error;
 
+    const normalizedParticipants = participants.map((participant) => ({
+      registration_id: participant.id,
+      student_name: participant.users?.nama || '-',
+      student_email: participant.users?.email || '-',
+      registered_at: participant.registered_at,
+      is_present: Array.isArray(participant.attendance)
+        ? participant.attendance[0]?.is_present === true
+        : participant.attendance?.is_present === true,
+    }));
+
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: participants.length,
-      data: participants,
+      total: normalizedParticipants.length,
+      data: normalizedParticipants,
     });
   } catch (err) {
     next(err);
