@@ -2,7 +2,7 @@ import apiService from './api';
 
 export const registrationService = {
   registerForEvent: async (eventId, payload = {}) => {
-    const response = await apiService.post(`/registrations/${eventId}`, payload);
+    const response = await apiService.post(`/events/${eventId}/register`, payload);
     return response.data;
   },
 

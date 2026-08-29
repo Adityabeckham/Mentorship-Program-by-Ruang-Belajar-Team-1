@@ -135,7 +135,7 @@ test.describe('End-to-End Integration Flow', () => {
     }));
 
     let registrationPayload;
-    await page.route('**/api/v1/registrations/*', async (route) => {
+    await page.route('**/api/v1/events/*/register', async (route) => {
       // The frontend sends POST request without body for registration, relying on URL param
       registrationPayload = route.request().postDataJSON() || {};
       registrationPayload.url = route.request().url();
@@ -153,9 +153,9 @@ test.describe('End-to-End Integration Flow', () => {
     await page.getByText('Integration Test Event').click();
     await page.getByRole('button', { name: '🎟️ Daftar Event Sekarang' }).click();
 
-    // Verify registration API was hit
+    // Verify registration API was hit with the new endpoint
     await expect.poll(() => registrationPayload).toBeTruthy();
-    expect(registrationPayload.url).toContain('/registrations/event-int-1');
+    expect(registrationPayload.url).toContain('/events/event-int-1/register');
 
     await expect(page.getByText(/Berhasil mendaftar event/)).toBeVisible({ timeout: 5000 });
 
