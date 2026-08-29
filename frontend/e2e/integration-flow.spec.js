@@ -125,7 +125,7 @@ test.describe('End-to-End Integration Flow', () => {
     // ---------------------------------------------------------
     await authenticateAs(page, 'mahasiswa');
     
-    await page.route('**/api/v1/events', (route) => route.fulfill({
+    await page.route('**/api/v1/events*', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
@@ -135,24 +135,28 @@ test.describe('End-to-End Integration Flow', () => {
     }));
 
     let registrationPayload;
-    await page.route('**/api/v1/registrations', async (route) => {
-      registrationPayload = route.request().postDataJSON();
+    await page.route('**/api/v1/registrations/*', async (route) => {
+      // The frontend sends POST request without body for registration, relying on URL param
+      registrationPayload = route.request().postDataJSON() || {};
+      registrationPayload.url = route.request().url();
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({
-          status: 'success',
-          message: 'Berhasil mendaftar ke event.',
-          data: { id: 'reg-1', event_id: 'event-int-1', status: 'registered' }
-        }),
+        body: JSON.stringify({ status: 'success', message: 'Registrasi berhasil' }),
       });
     });
 
     await page.goto('/');
-    await page.getByText('Seminar Nasional: Generative AI').click();
+    
+    // Tunggu sampai event hasil fetch muncul, fallback timeout dinaikkan
+    await page.getByText('Integration Test Event').waitFor({ state: 'visible', timeout: 10000 });
+    await page.getByText('Integration Test Event').click();
     await page.getByRole('button', { name: '🎟️ Daftar Event Sekarang' }).click();
 
-    // The frontend mocks registration via setTimeout, so we wait for the success toast
+    // Verify registration API was hit
+    await expect.poll(() => registrationPayload).toBeTruthy();
+    expect(registrationPayload.url).toContain('/registrations/event-int-1');
+
     await expect(page.getByText(/Berhasil mendaftar event/)).toBeVisible({ timeout: 5000 });
 
     // ---------------------------------------------------------

@@ -2,6 +2,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import toast from 'react-hot-toast';
+import { eventService } from '../services/eventService';
+import registrationService from '../services/registrationService';
 
 const POSTER_COLORS = {
   yellow: 'c-yellow',
@@ -69,9 +71,42 @@ const Home = () => {
   const [selectedCat, setSelectedCat] = useState('All');
   const [activeModalEvent, setActiveModalEvent] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [eventsData, setEventsData] = useState(EVENTS);
+
+  React.useEffect(() => {
+    eventService.getAllEvents().then(res => {
+      if (res && res.data) {
+        // Gabungkan data statis dengan data dinamis dari backend
+        // Data dari backend diberi prioritas (ditaruh di awal)
+        const dynamicEvents = res.data.map(ev => ({
+          ...ev,
+          id: ev.id,
+          title: ev.title,
+          category: ev.category,
+          org: ev.users?.organization_name || 'Organisasi Mahasiswa',
+          location: ev.location,
+          date: ev.event_date || ev.date,
+          speaker: ev.speaker,
+          quota: ev.quota,
+          registered: ev.peserta || 0,
+          status: ev.status,
+          color: 'sky',
+          benefits: ['✨ Sertifikat', 'Knowledge'],
+          desc: ev.description
+        }));
+        setEventsData(prev => {
+          // Cegah duplikasi karena StrictMode double-fetch
+          const newEvents = dynamicEvents.filter(d => !prev.some(p => p.id === d.id));
+          return [...newEvents, ...prev];
+        });
+      }
+    }).catch(err => {
+      console.warn('Gagal memuat event publik dari backend:', err);
+    });
+  }, []);
 
   const filtered = useMemo(() => {
-    return EVENTS.filter(ev => {
+    return eventsData.filter(ev => {
       const matchCat = selectedCat === 'All' || ev.category === selectedCat;
       const matchSearch = !search ||
         ev.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,7 +114,7 @@ const Home = () => {
         ev.speaker.toLowerCase().includes(search.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [selectedCat, search]);
+  }, [selectedCat, search, eventsData]);
 
   const handleRegisterEvent = useCallback(async (ev) => {
     if (!user) {
@@ -89,12 +124,16 @@ const Home = () => {
     }
     
     setIsRegistering(true);
-    // Simulate API Call for Registration
-    setTimeout(() => {
+    
+    try {
+      await registrationService.registerForEvent(ev.id);
       toast.success(`Berhasil mendaftar event: "${ev.title}"! Tiket tersedia di Dashboard Anda.`);
-      setIsRegistering(false);
       setActiveModalEvent(null);
-    }, 1200);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Gagal mendaftar event. Silakan coba lagi.');
+    } finally {
+      setIsRegistering(false);
+    }
   }, [user, navigate]);
 
   return (
