@@ -203,14 +203,16 @@ const PanitiaDashboard = () => {
     }
   }, []);
 
-  const visibleParticipants = participants.filter((participant) => {
-    const isPresent = participant.is_present === true;
-    if (attendanceFilter === 'present') return isPresent;
-    if (attendanceFilter === 'absent') return !isPresent;
-    return true;
-  });
+  const visibleParticipants = useMemo(() => {
+    return participants.filter((participant) => {
+      const isPresent = participant.is_present === true;
+      if (attendanceFilter === 'present') return isPresent;
+      if (attendanceFilter === 'absent') return !isPresent;
+      return true;
+    });
+  }, [participants, attendanceFilter]);
 
-  const selectedEvent = events.find((event) => event.id === selectedEventId);
+  const selectedEvent = useMemo(() => events.find((event) => event.id === selectedEventId), [events, selectedEventId]);
 
   return (
     <div className="page-fade">
