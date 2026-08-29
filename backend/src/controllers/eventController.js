@@ -104,7 +104,7 @@ exports.getPublicEvents = async (req, res, next) => {
       .order('event_date', { ascending: true });
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%, category.ilike.$${search}%, location.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%, category.ilike.%${search}%, location.ilike.%${search}%`);
     }
 
     query = query.range(offset, offset + limit - 1);
@@ -119,7 +119,7 @@ exports.getPublicEvents = async (req, res, next) => {
        .order('event_date', { ascending: true });
 
       if (search) {
-        fallbackQuery = fallbackQuery.or(`title.ilike.%${search}%, location.ilike.$${search}%%`);
+        fallbackQuery = fallbackQuery.or(`title.ilike.%${search}%, location.ilike.%${search}%`);
       }
 
       fallbackQuery = fallbackQuery.range(offset, offset + limit - 1);
