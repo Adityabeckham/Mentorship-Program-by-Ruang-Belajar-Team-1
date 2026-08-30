@@ -5,6 +5,15 @@
 [![Database](https://img.shields.io/badge/Database-Supabase_PostgreSQL-green.svg)](https://supabase.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-React.js_%2B_Tailwind_CSS-cyan.svg)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
+[Arsiktektur](https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce)
+
+
+
+
+
+
+
+
 
 ---
 
