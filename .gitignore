@@ -29,4 +29,4 @@ build/
 frontend/test-results/
 
 # Archify Visual Check Evidence
-docs_project/*.visual-check.*
+docs_project/archify-visual-checks/
