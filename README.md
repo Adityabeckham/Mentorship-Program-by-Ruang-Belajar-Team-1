@@ -19,7 +19,7 @@
 ---
 [Arsiktektur]
 https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce
-## 📌 1. Project Overview
+##  1. Project Overview
 
 **EventHub Kampus** adalah platform terintegrasi berbasis web yang dirancang khusus untuk menyederhanakan dan mengotomatiskan seluruh alur manajemen event di lingkungan kampus (UKM, BEM, Himpunan Mahasiswa). 
 
@@ -27,7 +27,7 @@ Platform ini memfasilitasi proses publikasi event resmi organisasi, pendaftaran 
 
 ---
 
-## 💥 2. Problem Statement (Latar Belakang Masalah - WHY)
+##  2. Problem Statement (Latar Belakang Masalah - WHY)
 
 Pengelolaan event di tingkat kampus saat ini masih menghadapi kendala operasional yang signifikan:
 - 📑 **Data Tersebar & Terfragmentasi:** Penggunaan Google Form dan Spreadsheet terpisah menyebabkan data pendaftaran peserta tersebar di banyak file tanpa database terpusat.
@@ -37,7 +37,7 @@ Pengelolaan event di tingkat kampus saat ini masih menghadapi kendala operasiona
 
 ---
 
-## 👥 3. Target User (WHO)
+##  3. Target User (WHO)
 
 Aplikasi ini melayani 3 tingkatan peranan pengguna (*3-Tier User Role*):
 
@@ -49,11 +49,11 @@ Aplikasi ini melayani 3 tingkatan peranan pengguna (*3-Tier User Role*):
 
 ---
 
-## 💡 4. Solusi & MVP Fitur (WHAT)
+##  4. Solusi & MVP Fitur (WHAT)
 
 EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi aman (JWT), kontrol akses berbasis peran (RBAC), serta database relational Supabase dengan *Row Level Security (RLS)*.
 
-### 📋 Fitur Utama (MVP Scope)
+###  Fitur Utama (MVP Scope)
 
 | No | Fitur | Deskripsi Singkat | Aktor Utama |
 | --- | --- | --- | --- |
@@ -64,7 +64,7 @@ EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi ama
 | 5 | **Kelola Event (CRUD & Verifikasi)** | Panitia dapat membuat *draft* event & mengajukan verifikasi; Admin dapat melakukan peninjauan, persetujuan, atau penolakan event. | Panitia & Admin |
 | 6 | **Pencatatan Kehadiran (Attendance)** | Tabel presensi peserta per event dengan fitur toggle status kehadiran (*attended* / *absent*) secara real-time. | Panitia |
 
-### 🚀 Tech Stack
+###  Tech Stack
 
 - **Frontend:** React.js, Tailwind CSS, React Router, Axios, Zustand/Context API
 - **Backend:** Node.js, Express.js (v5), JWT, bcryptjs, express-validator
@@ -73,28 +73,25 @@ EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi ama
 
 ---
 
-## 🏛️ 5. Arsitektur Platform (ARCHITECTURE)
+##  5. Arsitektur Platform (ARCHITECTURE)
 
 Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus** yang dikembangkan menggunakan **Archify** dan divalidasi langsung dari bukti kode sumber repositori:
 
-### 🗺️ Diagram Arsitektur Interaktif
-- 🌐 **[Buka Diagram Arsitektur Interaktif (HTML)](docs_project/architecture.html)** - *Diagram SVG interaktif dengan tema Gelap/Terang, pencarian komponen, penelusuran hubungan (trace flow), dan guided views.*
+###  Diagram Arsitektur Interaktif
+-  **[Buka Diagram Arsitektur Interaktif (HTML)](docs_project/architecture.html)** - *Diagram SVG interaktif dengan tema Gelap/Terang, pencarian komponen, penelusuran hubungan (trace flow), dan guided views.*
 
-
-### 🎥 Demo Video Arsitektur Platform
+###  Demo Video Arsitektur Platform
 Berikut adalah video demo alur interaktif diagram arsitektur EventHub Kampus:
-
-https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce
 
 <video src="https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce" width="100%" controls></video>
 
-### 🔍 Ringkasan Komponen Utama
+###  Ringkasan Komponen Utama
 - **Frontend App:** Aplikasi Single Page Application (SPA) berbasis Vite React. Menggunakan Axios client terpusat untuk komunikasi REST API ke backend.
 - **Backend API Server:** Server Node.js Express melayani port `:5000` dengan perlindungan keamanan middleware (Helmet, express-rate-limit, input XSS sanitization) dan otorisasi RBAC (Mahasiswa, Panitia, Admin).
 - **Authentication Service:** Modul otentikasi JWT yang memetakan Access & Refresh Tokens dengan enkripsi password menggunakan `bcryptjs`.
 - **Database Layer:** PostgreSQL di-host secara aman di Supabase Cloud, terhubung langsung via Postgres Client Connection Pool serta API Client SDK.
 
-### 📸 Laporan Pengujian Visual & Screenshots
+###  Laporan Pengujian Visual & Screenshots
 Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran layar desktop:
 
 | Light Theme Viewport | Dark Theme Viewport |
@@ -106,20 +103,20 @@ Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran laya
 
 ---
 
-## ⚙️ 6. Cara Menjalankan Project (Local Development)
+##  6. Cara Menjalankan Project (Local Development)
 
-### 📋 Prasyarat Sistem
+###  Prasyarat Sistem
 - **Node.js**: v18.0.0 atau versi terbaru (direkomendasikan LTS)
 - **npm**: v9.0.0 atau versi terbaru
 - **Git**: v2.x
 
-### 📥 1. Clone Repository
+###  1. Clone Repository
 ```bash
 git clone https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1.git
 cd Mentorship-Program-by-Ruang-Belajar-Team-1
 ```
 
-### 🚀 2. Setup & Jalankan Backend Server
+### 2. Setup & Jalankan Backend Server
 1. Masuk ke folder backend dan install dependensi:
 ```bash
 cd backend
@@ -156,7 +153,7 @@ npm run dev
 
 ---
 
-### 💻 3. Setup & Jalankan Frontend App
+###  3. Setup & Jalankan Frontend App
 1. Buka terminal baru, masuk ke folder frontend dan install dependensi:
 ```bash
 cd frontend
@@ -173,7 +170,7 @@ npm run dev
 ```
 *Aplikasi Frontend berjalan di:* `http://localhost:5173`
 
-## 👥 7. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
+##  7. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
 
 | Nama Lengkap | GitHub Username | Role | Kontribusi / Scope Task |
 | --- | --- | --- | --- |
@@ -189,7 +186,7 @@ npm run dev
 
 ---
 
-## 📄 Dokumentasi Terkait
+##  Dokumentasi Terkait
 - 📘 [Product Requirement Document (PRD)](docs_project/EventHub%20Kampus%20-%20PRD.md)
 - 📐 [ERD & API Contract v2 Specification](docs_project/EventHub-Kampus-ERD-API-Contract-v2.md)
 - 📊 [Kanban Task Board & Team Breakdown](docs_project/EventHub-Kampus-Kanban-FULL%20%281%29.md)
