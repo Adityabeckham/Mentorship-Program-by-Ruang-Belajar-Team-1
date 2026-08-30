@@ -16,9 +16,13 @@
 
 
 
+
+
+
+
 ---
 
-[PREVIEW<video src="https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce" width="100%" controls></video>]
+<video src="https://github.com/user-attachments/assets/d0bd08cb-d39f-4ec8-87ef-af2c98448576" width="100%" controls></video>
 
 ##  1. Project Overview
 
@@ -84,7 +88,7 @@ Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus*
 ###  Demo Video Arsitektur Platform
 Berikut adalah video demo alur interaktif diagram arsitektur EventHub Kampus:
 
-[PREVIEW<video src="https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce" width="100%" controls></video>]
+<video src="https://github.com/user-attachments/assets/d0bd08cb-d39f-4ec8-87ef-af2c98448576" width="100%" controls></video>
 
 ###  Ringkasan Komponen Utama
 - **Frontend App:** Aplikasi Single Page Application (SPA) berbasis Vite React. Menggunakan Axios client terpusat untuk komunikasi REST API ke backend.
