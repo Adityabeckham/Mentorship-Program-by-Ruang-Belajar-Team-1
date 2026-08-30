@@ -62,7 +62,7 @@ EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi ama
 
 ---
 
-## 🏛️ Arsitektur Platform (ARCHITECTURE)
+## 🏛️ 5. Arsitektur Platform (ARCHITECTURE)
 
 Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus** yang dikembangkan menggunakan **Archify** dan divalidasi langsung dari bukti kode sumber repositori:
 
@@ -87,10 +87,10 @@ Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran laya
 
 ---
 
-## 🛠️ 5. Cara Menjalankan Project (Local Development)
+## ⚙️ 6. Cara Menjalankan Project (Local Development)
 
 ### 📋 Prasyarat Sistem
-- **Node.js**: v18.0.0 atau versi terbaru
+- **Node.js**: v18.0.0 atau versi terbaru (direkomendasikan LTS)
 - **npm**: v9.0.0 atau versi terbaru
 - **Git**: v2.x
 
@@ -100,52 +100,61 @@ git clone https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Te
 cd Mentorship-Program-by-Ruang-Belajar-Team-1
 ```
 
-### ⚙️ 2. Setup Backend Server
+### 🚀 2. Setup & Jalankan Backend Server
+1. Masuk ke folder backend dan install dependensi:
 ```bash
-# Masuk ke direktori backend
 cd backend
-
-# Install dependensi backend
 npm install
-
-# Buat file lingkungan (.env) di dalam folder backend
-# Salin konfigurasi berikut ke file backend/.env:
 ```
-
-Contoh variabel lingkungan di `backend/.env`:
+2. Buat file `.env` di folder `backend/` dan isi dengan konfigurasi berikut:
 ```env
+# Server Configuration
 PORT=5000
 NODE_ENV=development
-SUPABASE_URL=https://your-supabase-url.supabase.co
-SUPABASE_KEY=your-supabase-anon-key
-JWT_SECRET=supersecretjwtkey123
-```
+CORS_ORIGIN=*
 
-### 🚀 3. Jalankan Server Backend
+# Supabase Database & Auth Credentials
+SUPABASE_URL=https://your-supabase-project.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
+DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.com:5432/postgres"
+
+# JWT Secret & Token Expiration Policy
+JWT_SECRET=your_super_secret_jwt_key_here_generate_with_openssl_rand_hex_64
+JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_here
+JWT_EXPIRES_IN=1d
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Frontend URL Local
+FRONTEND_URL=http://localhost:5173/
+```
+3. Jalankan backend server dalam development mode:
 ```bash
-# Menjalankan backend dengan Nodemon (Development Mode)
 npm run dev
-
-# Atau menjalankan mode produksi
-npm start
 ```
-*Server Backend akan berjalan di:* `http://localhost:5000/api/v1`
-
-#### 🧪 Uji Coba Health Check Endpoint:
-Akses melalui browser atau Postman: `GET http://localhost:5000/api/v1/health`
-
-Response:
-```json
-{
-  "status": "success",
-  "message": "Backend EventHub Kampus API siap digunakan!",
-  "timestamp": "2026-08-06T12:00:00.000Z"
-}
-```
+*Server Backend berjalan di:* `http://localhost:5000`
 
 ---
 
-## 👥 6. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
+### 💻 3. Setup & Jalankan Frontend App
+1. Buka terminal baru, masuk ke folder frontend dan install dependensi:
+```bash
+cd frontend
+npm install
+```
+2. Buat file `.env` di folder `frontend/` dan isi dengan konfigurasi berikut:
+```env
+# API Base URL for backend endpoint connection
+VITE_API_BASE_URL=http://localhost:5000/api/v1
+```
+3. Jalankan frontend development server:
+```bash
+npm run dev
+```
+*Aplikasi Frontend berjalan di:* `http://localhost:5173`
+
+## 👥 7. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
 
 | Nama Lengkap | GitHub Username | Role | Kontribusi / Scope Task |
 | --- | --- | --- | --- |
