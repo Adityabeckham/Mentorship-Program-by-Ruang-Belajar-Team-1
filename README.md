@@ -18,7 +18,7 @@
 
 ---
 [Arsiktektur]
-(https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce)
+https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce
 ## 📌 1. Project Overview
 
 **EventHub Kampus** adalah platform terintegrasi berbasis web yang dirancang khusus untuk menyederhanakan dan mengotomatiskan seluruh alur manajemen event di lingkungan kampus (UKM, BEM, Himpunan Mahasiswa). 
