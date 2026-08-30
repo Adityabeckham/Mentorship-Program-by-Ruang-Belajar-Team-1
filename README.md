@@ -85,11 +85,6 @@ Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus*
 ###  Diagram Arsitektur Interaktif
 -  **[Buka Diagram Arsitektur Interaktif (HTML)](docs_project/architecture.html)** - *Diagram SVG interaktif dengan tema Gelap/Terang, pencarian komponen, penelusuran hubungan (trace flow), dan guided views.*
 
-###  Demo Video Arsitektur Platform
-Berikut adalah video demo alur interaktif diagram arsitektur EventHub Kampus:
-
-<video src="https://github.com/user-attachments/assets/d0bd08cb-d39f-4ec8-87ef-af2c98448576" width="100%" controls></video>
-
 ###  Ringkasan Komponen Utama
 - **Frontend App:** Aplikasi Single Page Application (SPA) berbasis Vite React. Menggunakan Axios client terpusat untuk komunikasi REST API ke backend.
 - **Backend API Server:** Server Node.js Express melayani port `:5000` dengan perlindungan keamanan middleware (Helmet, express-rate-limit, input XSS sanitization) dan otorisasi RBAC (Mahasiswa, Panitia, Admin).
