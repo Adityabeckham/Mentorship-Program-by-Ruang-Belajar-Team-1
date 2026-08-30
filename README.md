@@ -62,6 +62,31 @@ EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi ama
 
 ---
 
+## 🏛️ Arsitektur Platform (ARCHITECTURE)
+
+Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus** yang dikembangkan menggunakan **Archify** dan divalidasi langsung dari bukti kode sumber repositori:
+
+### 🗺️ Diagram Arsitektur Interaktif
+- 🌐 **[Buka Diagram Arsitektur Interaktif (HTML)](docs_project/architecture.html)** - *Diagram SVG interaktif dengan tema Gelap/Terang, pencarian komponen, penelusuran hubungan (trace flow), dan guided views.*
+
+### 🔍 Ringkasan Komponen Utama
+- **Frontend App:** Aplikasi Single Page Application (SPA) berbasis Vite React. Menggunakan Axios client terpusat untuk komunikasi REST API ke backend.
+- **Backend API Server:** Server Node.js Express melayani port `:5000` dengan perlindungan keamanan middleware (Helmet, express-rate-limit, input XSS sanitization) dan otorisasi RBAC (Mahasiswa, Panitia, Admin).
+- **Authentication Service:** Modul otentikasi JWT yang memetakan Access & Refresh Tokens dengan enkripsi password menggunakan `bcryptjs`.
+- **Database Layer:** PostgreSQL di-host secara aman di Supabase Cloud, terhubung langsung via Postgres Client Connection Pool serta API Client SDK.
+
+### 📸 Laporan Pengujian Visual & Screenshots
+Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran layar desktop:
+
+| Light Theme Viewport | Dark Theme Viewport |
+| :---: | :---: |
+| ![Light Theme (1440x900)](docs_project/archify-visual-checks/architecture.visual-check.1440x900.light.png) | ![Dark Theme (1440x900)](docs_project/archify-visual-checks/architecture.visual-check.1440x900.dark.png) |
+| ![Light Theme (2048x1320)](docs_project/archify-visual-checks/architecture.visual-check.2048x1320.light.png) | ![Dark Theme (2048x1320)](docs_project/archify-visual-checks/architecture.visual-check.2048x1320.dark.png) |
+
+*(Detail pengujian visual lengkap dapat diakses pada berkas [Laporan Visual Check](docs_project/archify-visual-checks/architecture.visual-check.html) dan data metrik [visual-check.json](docs_project/archify-visual-checks/architecture.visual-check.json)).*
+
+---
+
 ## 🛠️ 5. Cara Menjalankan Project (Local Development)
 
 ### 📋 Prasyarat Sistem

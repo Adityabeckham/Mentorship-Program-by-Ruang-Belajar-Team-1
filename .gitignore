@@ -28,5 +28,3 @@ build/
 *.log
 frontend/test-results/
 
-# Archify Visual Check Evidence
-docs_project/archify-visual-checks/
