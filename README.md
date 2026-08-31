@@ -104,7 +104,7 @@ Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran laya
 ---
 ## Security Testing (Strix AI autonomous pentesting) 
 ### Workflow 
-<img width="2143" height="2143" alt="Flowchart" src="https://github.com/user-attachments/assets/7698fa22-459d-4c66-8c4d-5ed350d3ea4d" />
+<img width="2143" height="8000" alt="Flowchart" src="https://github.com/user-attachments/assets/7698fa22-459d-4c66-8c4d-5ed350d3ea4d" />
 
 ##  6. Cara Menjalankan Project (Local Development)
 
