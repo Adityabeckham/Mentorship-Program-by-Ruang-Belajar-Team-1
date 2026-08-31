@@ -102,11 +102,6 @@ Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran laya
 *(Detail pengujian visual lengkap dapat diakses pada berkas [Laporan Visual Check](docs_project/archify-visual-checks/architecture.visual-check.html) dan data metrik [visual-check.json](docs_project/archify-visual-checks/architecture.visual-check.json)).*
 
 ---
-## Security Testing (Strix AI autonomous pentesting)
-### Workflow Team
-<img width="2145" height="8191" alt="User Management and-2026-08-31-075116" src="https://github.com/user-attachments/assets/df98af91-a795-4f4d-b522-27b4b711ca91" />
-
-
 
 ##  6. Cara Menjalankan Project (Local Development)
 
