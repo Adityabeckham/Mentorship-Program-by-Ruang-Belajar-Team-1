@@ -1,22 +1,20 @@
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
 
-// POST /panitia/attendance (Marking Presensi Peserta)
+// POST /panitia/attendance
 exports.markAttendance = async (req, res, next) => {
   try {
     const { registration_id, is_present } = req.body;
     const panitiaId = req.user.id;
     const userRole = req.user.role;
 
-    if (!registration_id || is_present === undefined) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: 'registration_id dan status is_present wajib diisi.',
-      });
+    if (!registration_id || typeof is_present !== 'boolean') {
+      return next(
+        new AppError('registration_id dan status is_present (boolean) wajib diisi.', 400)
+      );
     }
 
-    // 1. Cek pendaftaran dan JOIN ke tabel events
+    // 1. Cek pendaftaran dan data event terkait
     const { data: registration, error: regError } = await supabase
       .from('registrations')
       .select(`
@@ -29,11 +27,12 @@ exports.markAttendance = async (req, res, next) => {
       `)
       .eq('id', registration_id)
       .single();
+
     if (regError || !registration) {
       return next(new AppError('Data pendaftaran (registration_id) tidak ditemukan.', 404));
     }
 
-    // 2. OTORISASI PRESENSI: Jika panitia mencoba tandai presensi event milik panitia lain -> 403 Forbidden
+    // 2. Otorisasi Panitia
     const eventOwnerId = registration.events.created_by;
     if (userRole === 'panitia' && eventOwnerId !== panitiaId) {
       return next(
@@ -56,9 +55,9 @@ exports.markAttendance = async (req, res, next) => {
       .select('id, registration_id, is_present, checked_at')
       .single();
 
-    if (attError) throw attError;
+    if (attError) return next(attError);
 
-    res.status(200).json({
+    return res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Status presensi berhasil diperbarui.',

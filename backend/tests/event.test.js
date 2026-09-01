@@ -1,7 +1,7 @@
 const request = require('supertest');
 const app = require('../app'); // File utama express Anda
 
-describe('GET /api/events', () => {
+describe('GET /v1/api/events', () => {
   it('harus mengembalikan status 200 dan format JSON yang benar', async () => {
     const res = await request(app).get('/api/events');
     

@@ -187,9 +187,6 @@ exports.createEvent = async (req, res, next) => {
     const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
     const panitiaId = req.user.id;
 
-<<<<<<< Updated upstream
-    let { data: newEvent, error } = await supabase
-=======
     // 1. CEK BENTROKAN JADWAL (Tempat & Tanggal/Jam yang sama untuk SELURUH Panitia)
     // Event yang di-soft delete (deleted_at IS NOT NULL) diabaikan
     const { data: existingBentrokan, error: checkError } = await supabase
@@ -213,7 +210,6 @@ exports.createEvent = async (req, res, next) => {
 
     // 2. INSERT EVENT BARU
     const { data: newEvent, error } = await supabase
->>>>>>> Stashed changes
       .from('events')
       .insert([
         {

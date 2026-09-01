@@ -1,6 +1,6 @@
 const errorHandler = (err, req, res, next) => {
   // 1. Ambil status code dari properti err.statusCode, err.status, atau default 500
-  let statusCode = err.statusCode || err.status || 500;
+  let statusCode = typeof err.statusCode === 'number' ? err.statusCode : 500;
   let message = err.message || 'Internal Server Error';
 
   // 2. TANGKAP ERROR DATABASE POSTGRES / SUPABASE (Mencegah 500 false-positive)
