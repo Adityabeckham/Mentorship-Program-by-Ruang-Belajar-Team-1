@@ -31,7 +31,7 @@ router.get(
 
 // CRUD Event Panitia
 router.post(
-  '/panitia/events',
+  '/events',
   authorizeRoles('panitia', 'admin'),
   createEventValidation,
   validate,
@@ -39,13 +39,13 @@ router.post(
 );
 
 router.put(
-  '/panitia/events/:id',
+  '/events/:id',
   authorizeRoles('panitia', 'admin'),
   eventController.updateEvent
 );
 
 router.delete(
-  '/panitia/events/:id',
+  '/events/:id',
   authorizeRoles('panitia', 'admin'),
   eventController.deleteEvent
 );
@@ -59,7 +59,7 @@ router.patch(
 
 // Submit Event untuk Verifikasi Admin (Khusus Panitia)
 router.patch(
-  '/panitia/events/:id/submit',
+  '/events/:id/submit',
   authorizeRoles('panitia'),
   eventController.submitEventForVerification
 );

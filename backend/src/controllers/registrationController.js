@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const AppError = require('../utils/appError');
 
 // 1. POST /events/:id/register (Atomic via Supabase RPC)
 const registerToEvent = async (req, res, next) => {
@@ -15,24 +16,27 @@ const registerToEvent = async (req, res, next) => {
     if (error) {
       const errorMsg = error.message || '';
 
+      // [DIUBAH]: Menggunakan AppError agar ditangani terpusat oleh errorHandler
       if (errorMsg.includes('EVENT_NOT_FOUND')) {
-        return res.status(404).json({ message: 'Event tidak ditemukan.' });
+        return next(new AppError('Event tidak ditemukan.', 404));
       }
       if (errorMsg.includes('EVENT_NOT_PUBLISHED')) {
-        return res.status(400).json({ message: 'Event belum dipublikasikan.' });
+        return next(new AppError('Event belum dipublikasikan.', 400));
       }
       if (errorMsg.includes('QUOTA_EXCEEDED')) {
-        return res.status(400).json({ message: 'Pendaftaran gagal, kuota event sudah habis.' });
+        return next(new AppError('Pendaftaran gagal, kuota event sudah habis.', 400));
       }
       if (errorMsg.includes('ALREADY_REGISTERED')) {
-        return res.status(400).json({ message: 'Anda sudah terdaftar pada event ini.' });
+        return next(new AppError('Anda sudah terdaftar pada event ini.', 400));
       }
 
-      throw error;
+      // Jika ada error database yang tidak terduga
+      return next(error);
     }
 
     return res.status(201).json({
       status: 'success',
+      statusCode: 201,
       message: 'Berhasil mendaftar ke event.',
       data,
     });
@@ -51,23 +55,41 @@ const getMyRegistrations = async (req, res, next) => {
       .select(`
         id,
         status,
-        registered_at,
         events (
-          id,
           title,
-          description,
-          location,
-          event_date
+          event_date,
+          location
+        ),
+        attendance (
+          is_present
         )
       `)
       .eq('user_id', userId)
       .order('registered_at', { ascending: false });
 
-    if (error) throw error;
+    // [DIUBAH]: Lempar error database ke next(error) jika query gagal
+    if (error) return next(error);
+
+    const formattedData = registrations.map((item) => {
+      // Ambil is_present dari relasi attendance (jika null/belum presensi, default false)
+      const isPresent = Array.isArray(item.attendance)
+        ? item.attendance[0]?.is_present || false
+        : item.attendance?.is_present || false;
+
+      return {
+        registration_id: item.id,
+        event_title: item.events?.title || '',
+        event_date: item.events?.event_date || null,
+        location: item.events?.location || '',
+        status: item.status,
+        is_present: isPresent,
+      };
+    });
 
     return res.status(200).json({
       status: 'success',
-      data: registrations,
+      statusCode: 200,
+      data: formattedData,
     });
   } catch (err) {
     next(err);
@@ -81,15 +103,27 @@ const updateAttendance = async (req, res, next) => {
     const { is_present } = req.body;
     const { id: userId, role } = req.user;
 
+<<<<<<< Updated upstream
     if (typeof is_present !== 'boolean') {
       return res.status(400).json({
         status: 'fail',
         statusCode: 400,
         message: 'is_present wajib berupa boolean.',
       });
+=======
+    const validStatuses = ['attended', 'absent'];
+    if (!status || !validStatuses.includes(status)) {
+      // [DIUBAH]: Menggunakan AppError (400 Bad Request)
+      return next(
+        new AppError(
+          `Status kehadiran tidak valid. Gunakan: ${validStatuses.join(', ')}`,
+          400
+        )
+      );
+>>>>>>> Stashed changes
     }
 
-    // Ambil registration untuk mengecek event_id (lalu cek kepemilikan event jika bukan admin)
+    // Ambil registration untuk mengecek event_id
     const { data: registration, error: regError } = await supabase
       .from('registrations')
       .select('id, event_id')
@@ -97,11 +131,8 @@ const updateAttendance = async (req, res, next) => {
       .single();
 
     if (regError || !registration) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Registrasi tidak ditemukan.',
-      });
+      // [DIUBAH]: Menggunakan AppError (404 Not Found)
+      return next(new AppError('Registrasi tidak ditemukan.', 404));
     }
 
     // Cek kepemilikan event jika panitia
@@ -111,13 +142,15 @@ const updateAttendance = async (req, res, next) => {
         .select('created_by')
         .eq('id', registration.event_id)
         .single();
-        
+
       if (eventError || !event || event.created_by !== userId) {
-        return res.status(403).json({
-          status: 'fail',
-          statusCode: 403,
-          message: 'Anda tidak memiliki akses untuk mengubah kehadiran pada event ini.',
-        });
+        // [DIUBAH]: Menggunakan AppError (403 Forbidden)
+        return next(
+          new AppError(
+            'Akses ditolak. Anda tidak memiliki izin untuk mengubah kehadiran pada event ini.',
+            403
+          )
+        );
       }
     }
 
@@ -132,7 +165,7 @@ const updateAttendance = async (req, res, next) => {
       .select('registration_id, is_present, checked_at')
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) return next(updateError);
 
     return res.status(200).json({
       status: 'success',
@@ -145,7 +178,6 @@ const updateAttendance = async (req, res, next) => {
   }
 };
 
-// Pastikan di-export secara eksplisit seperti ini
 module.exports = {
   registerToEvent,
   getMyRegistrations,
