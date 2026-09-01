@@ -71,10 +71,6 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-<<<<<<< Updated upstream
-  console.log('🚀 Server Backend berjalan di http://localhost:' + PORT);
-});
-=======
   console.log(`🚀 Server Backend berjalan di http://localhost:${PORT}`);
 });
 
@@ -89,4 +85,3 @@ process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION! Mematikan server...');
   console.error(err.name, err.message);
 });
->>>>>>> Stashed changes
