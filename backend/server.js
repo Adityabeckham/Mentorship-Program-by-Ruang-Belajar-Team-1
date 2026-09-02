@@ -10,6 +10,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const registrationRoutes = require('./src/routes/registrationRoutes');
 const eventRoutes = require('./src/routes/eventRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const attendanceRoutes = require('./src/routes/attendanceRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const sanitizeInput = require('./src/middlewares/sanitizeMiddleware');
 
@@ -57,6 +58,7 @@ app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', eventRoutes);
 app.use('/api/v1', registrationRoutes);
+app.use('/api/v1', attendanceRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
 
@@ -69,5 +71,17 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log('🚀 Server Backend berjalan di http://localhost:' + PORT);
+  console.log(`🚀 Server Backend berjalan di http://localhost:${PORT}`);
+});
+
+// Tangkap unhandled promise rejections (misal koneksi DB terputus)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION! Mematikan server secara teratur...');
+  console.error('Reason:', reason);
+});
+
+// Tangkap synchronous uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION! Mematikan server...');
+  console.error(err.name, err.message);
 });

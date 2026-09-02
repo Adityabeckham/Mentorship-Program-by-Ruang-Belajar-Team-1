@@ -1,17 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../config/supabase');
-const { JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN } = require('../config/env');
-
-const signAccessToken = (payload) => jwt.sign(payload, JWT_SECRET, {
-  expiresIn: JWT_EXPIRES_IN || '1d',
-});
-
-const signRefreshToken = (payload) => jwt.sign(
-  { ...payload, tokenType: 'refresh' },
-  JWT_REFRESH_SECRET,
-  { expiresIn: JWT_REFRESH_EXPIRES_IN || '7d' }
-);
+const AppError = require('../utils/appError');
 
 // 1. POST /auth/register
 exports.register = async (req, res, next) => {
@@ -20,21 +10,13 @@ exports.register = async (req, res, next) => {
 
     // Validation
     if (!nama || !email || !password) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: 'Nama, email, dan password wajib diisi'
-      });
+      return next(new AppError('Nama, email, dan password wajib diisi', 400));
     }
 
     // Sanitize & validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: 'Format email tidak valid'
-      });
+      return next(new AppError('Format email tidak valid', 400));
     }
 
     // Cek apakah email sudah terdaftar
@@ -45,11 +27,7 @@ exports.register = async (req, res, next) => {
       .maybeSingle();
 
     if (existingUser) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: 'Email sudah terdaftar'
-      });
+      return next(new AppError('Email sudah terdaftar', 400));
     }
 
     // Hashing Password dengan Bcrypt (Salt round = 10)
@@ -89,11 +67,7 @@ exports.login = async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: 'Email dan password wajib diisi'
-      });
+      return next(new AppError('Email dan password wajib diisi', 400));
     }
 
     // Cari user berdasarkan email
@@ -104,21 +78,13 @@ exports.login = async (req, res, next) => {
       .maybeSingle();
 
     if (error || !user) {
-      return res.status(401).json({
-        status: 'fail',
-        statusCode: 401,
-        message: 'Kredensial tidak valid (email/password salah)'
-      });
+      return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
 
     // Membandingkan password inputan dengan hashed password di database
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        status: 'fail',
-        statusCode: 401,
-        message: 'Kredensial tidak valid (email/password salah)'
-      });
+      return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
 
     // Membuat JWT Token yang memuat payload: user id dan role
@@ -127,15 +93,15 @@ exports.login = async (req, res, next) => {
       role: user.role,
     };
 
-    const token = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'supersecretjwtkey123', {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+    });
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Login berhasil',
       token,
-      refreshToken,
       user: {
         id: user.id,
         nama: user.nama,
@@ -148,56 +114,7 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// 3. POST /auth/refresh
-exports.refresh = async (req, res, next) => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(401).json({
-        status: 'fail',
-        statusCode: 401,
-        message: 'Refresh token tidak ditemukan',
-      });
-    }
-
-    let decoded;
-    try {
-      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
-    } catch (e) {
-      decoded = jwt.verify(refreshToken, JWT_SECRET);
-    }
-    if (decoded.tokenType !== 'refresh') {
-      return res.status(401).json({
-        status: 'fail',
-        statusCode: 401,
-        message: 'Refresh token tidak valid',
-      });
-    }
-
-    const { tokenType, iat, exp, ...payload } = decoded;
-    const token = signAccessToken(payload);
-    const nextRefreshToken = signRefreshToken(payload);
-
-    return res.status(200).json({
-      status: 'success',
-      statusCode: 200,
-      token,
-      refreshToken: nextRefreshToken,
-    });
-  } catch (err) {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        status: 'fail',
-        statusCode: 401,
-        message: 'Refresh token tidak valid atau sudah kadaluarsa',
-      });
-    }
-    return next(err);
-  }
-};
-
-// 4. GET /auth/me
+// 3. GET /auth/me
 exports.getMe = async (req, res, next) => {
   try {
     // req.user diset oleh authenticateToken middleware
@@ -210,11 +127,7 @@ exports.getMe = async (req, res, next) => {
       .maybeSingle();
 
     if (error || !user) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Pengguna tidak ditemukan',
-      });
+      return next(new AppError('Pengguna tidak ditemukan', 404));
     }
 
     res.status(200).json({

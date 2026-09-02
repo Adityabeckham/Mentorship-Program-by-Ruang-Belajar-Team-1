@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const AppError = require('../utils/appError');
 
 const isColumnError = (err) => err && (err.code === '42703' || (err.message && err.message.includes('does not exist')));
 
@@ -53,11 +54,7 @@ exports.updateEventStatus = async (req, res, next) => {
 
     const validStatuses = ['draft', 'published', 'completed', 'canceled'];
     if (!status || !validStatuses.includes(status)) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: `Status tidak valid. Gunakan salah satu dari: ${validStatuses.join(', ')}`,
-      });
+      return next(new AppError(`Status tidak valid. Gunakan salah satu dari: ${validStatuses.join(', ')}`, 400));
     }
 
     const { data: updatedEvent, error } = await supabase
@@ -69,11 +66,7 @@ exports.updateEventStatus = async (req, res, next) => {
       .single();
 
     if (error || !updatedEvent) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan.',
-      });
+      return next(new AppError('Event tidak ditemukan.', 404));
     }
 
     res.status(200).json({
@@ -175,11 +168,7 @@ exports.getPublicEventDetail = async (req, res, next) => {
     }
 
     if (error || !event) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan atau belum dipublikasikan.',
-      });
+      return next(new AppError('Event tidak ditemukan atau belum dipublikasikan.', 404));
     }
 
     res.status(200).json({
@@ -198,7 +187,29 @@ exports.createEvent = async (req, res, next) => {
     const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
     const panitiaId = req.user.id;
 
-    let { data: newEvent, error } = await supabase
+    // 1. CEK BENTROKAN JADWAL (Tempat & Tanggal/Jam yang sama untuk SELURUH Panitia)
+    // Event yang di-soft delete (deleted_at IS NOT NULL) diabaikan
+    const { data: existingBentrokan, error: checkError } = await supabase
+      .from('events')
+      .select('id, title, location, event_date')
+      .eq('location', location)
+      .eq('event_date', event_date)
+      .is('deleted_at', null)
+      .maybeSingle(); // Menggunakan maybeSingle agar tidak melempar error jika data kosong
+
+    if (checkError) throw checkError;
+
+    // Jika ada event lain di lokasi dan jam/tanggal yang persis sama
+    if (existingBentrokan) {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: `Gagal membuat event. Jadwal bentrok dengan event "${existingBentrokan.title}" pada lokasi dan waktu yang sama.`,
+      });
+    }
+
+    // 2. INSERT EVENT BARU
+    const { data: newEvent, error } = await supabase
       .from('events')
       .insert([
         {
@@ -214,7 +225,8 @@ exports.createEvent = async (req, res, next) => {
           created_by: panitiaId,
         },
       ])
-      .select()
+      // HANYA SELECT PROPERTI YANG DIBUTUHKAN SESUAI KONTRAK RESPONSE
+      .select('id, title, status, created_at')
       .single();
 
     if (error && isColumnError(error)) {
@@ -239,11 +251,17 @@ exports.createEvent = async (req, res, next) => {
 
     if (error) throw error;
 
+    // 3. RETURN RESPONSE SESUAI KONTRAK
     res.status(201).json({
       status: 'success',
       statusCode: 201,
-      message: 'Draft event berhasil dibuat.',
-      data: newEvent,
+      message: 'Draft event berhasil dibuat', 
+      data: {
+        id: newEvent.id,
+        title: newEvent.title,
+        status: newEvent.status,
+        created_at: newEvent.created_at,
+      },
     });
   } catch (err) {
     next(err);
@@ -265,19 +283,11 @@ exports.updateEvent = async (req, res, next) => {
       .single();
 
     if (findError || !existingEvent) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan.',
-      });
+      return next(new AppError('Event tidak ditemukan.', 404));
     }
 
     if (req.user.role === 'panitia' && existingEvent.created_by !== panitiaId) {
-      return res.status(403).json({
-        status: 'fail',
-        statusCode: 403,
-        message: 'Akses ditolak. Anda tidak memiliki izin untuk mengedit event milik panitia lain.',
-      });
+      return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk mengedit event milik panitia lain.', 403));
     }
 
     let { data: updatedEvent, error: updateError } = await supabase
@@ -344,19 +354,11 @@ exports.deleteEvent = async (req, res, next) => {
       .single();
 
     if (findError || !event) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan.',
-      });
+      return next(new AppError('Event tidak ditemukan.', 404));
     }
 
     if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
-      return res.status(403).json({
-        status: 'fail',
-        statusCode: 403,
-        message: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus event milik panitia lain.',
-      });
+      return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk menghapus event milik panitia lain.', 403));
     }
 
     const { data: deletedEvent, error } = await supabase
@@ -391,13 +393,9 @@ exports.getEventParticipants = async (req, res, next) => {
         .select('id, created_by')
         .eq('id', eventId)
         .single();
-        
+
       if (eventError || !event || event.created_by !== userId) {
-        return res.status(403).json({
-          status: 'fail',
-          statusCode: 403,
-          message: 'Anda tidak memiliki akses ke event ini.',
-        });
+        return next(new AppError('Anda tidak memiliki akses ke event ini.', 403));
       }
     }
 
@@ -454,35 +452,19 @@ exports.submitEventForVerification = async (req, res, next) => {
       .single();
 
     if (findError || !event) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan.',
-      });
+      return next(new AppError('Event tidak ditemukan.', 404));
     }
 
     if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
-      return res.status(403).json({
-        status: 'fail',
-        statusCode: 403,
-        message: 'Akses ditolak. Anda tidak memiliki izin untuk mengajukan event milik panitia lain.',
-      });
+      return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk mengajukan event milik panitia lain.', 403));
     }
 
     if (event.status !== 'draft' && event.status !== 'rejected') {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: `Hanya event berstatus 'draft' yang dapat diajukan. Status saat ini: '${event.status}'.`,
-      });
+      return next(new AppError(`Hanya event berstatus 'draft' yang dapat diajukan. Status saat ini: '${event.status}'.`, 400));
     }
 
     if (!event.title || !event.description || !event.location || !event.event_date || !event.quota) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: 'Gagal mengajukan event. Informasi event belum lengkap.',
-      });
+      return next(new AppError('Gagal mengajukan event. Informasi event belum lengkap.', 400));
     }
 
     const { data: updatedEvent, error: updateError } = await supabase
@@ -492,7 +474,7 @@ exports.submitEventForVerification = async (req, res, next) => {
         updated_at: new Date(),
       })
       .eq('id', id)
-      .select('id, title, status, updated_at')
+      .select('id, status')
       .single();
 
     if (updateError) throw updateError;
@@ -508,7 +490,7 @@ exports.submitEventForVerification = async (req, res, next) => {
   }
 };
 
-// 10. GET /admin/events (Daftar event yang memerlukan verifikasi / status 'pending_verification')
+// 10. GET /admin/events (Verifikasi Event Admin)
 exports.getPendingEventsForAdmin = async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -563,11 +545,7 @@ exports.verifyEventByAdmin = async (req, res, next) => {
     const { action, rejection_reason } = req.body;
 
     if (!action || !['approve', 'reject'].includes(action)) {
-      return res.status(400).json({
-        status: 'fail',
-        statusCode: 400,
-        message: "Aksi tidak valid. Nilai 'action' harus berupa 'approve' atau 'reject'.",
-      });
+      return next(new AppError("Aksi tidak valid. Nilai 'action' harus berupa 'approve' atau 'reject'.", 400));
     }
 
     const { data: event, error: findError } = await supabase
@@ -578,11 +556,7 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       .single();
 
     if (findError || !event) {
-      return res.status(404).json({
-        status: 'fail',
-        statusCode: 404,
-        message: 'Event tidak ditemukan.',
-      });
+      return next(new AppError('Event tidak ditemukan.', 404));
     }
 
     let newStatus = '';
@@ -592,11 +566,7 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       newStatus = 'published';
     } else if (action === 'reject') {
       if (!rejection_reason || rejection_reason.trim() === '') {
-        return res.status(400).json({
-          status: 'fail',
-          statusCode: 400,
-          message: "Alasan penolakan ('rejection_reason') wajib diisi jika menolak event.",
-        });
+        return next(new AppError("Alasan penolakan ('rejection_reason') wajib diisi jika menolak event.", 400));
       }
       newStatus = 'rejected';
       reasonToSave = rejection_reason;

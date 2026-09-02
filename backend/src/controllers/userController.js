@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
+const AppError = require('../utils/appError');
 
 // 1. POST /admin/panitia (Membuat Akun Panitia Baru)
 exports.createPanitia = async (req, res, next) => {
@@ -7,7 +8,8 @@ exports.createPanitia = async (req, res, next) => {
     const { nama, email, password, organization_name } = req.body;
 
     if (!nama || !email || !password) {
-      return res.status(400).json({ message: 'Nama organisasi/panitia, email, dan password wajib diisi.' });
+      // PERUBAHAN: Menggunakan AppError untuk 400 Bad Request
+      return next(new AppError('Nama panitia, email, dan password wajib diisi.', 400));
     }
 
     // Cek duplikasi email
@@ -18,7 +20,8 @@ exports.createPanitia = async (req, res, next) => {
       .single();
 
     if (existingUser) {
-      return res.status(400).json({ message: 'Email sudah terdaftar.' });
+      // PERUBAHAN: Menggunakan AppError
+      return next(new AppError('Email sudah terdaftar.', 400));
     }
 
     // Hash password
@@ -30,12 +33,12 @@ exports.createPanitia = async (req, res, next) => {
       .from('users')
       .insert([
         {
-          nama, // Nama organisasi/panitia (e.g., BEM / UKM Musik)
+          nama,
           email,
           password: hashedPassword,
           role: 'panitia',
-          organization_name: organization_name || null
-        }
+          organization_name: organization_name || null,
+        },
       ])
       .select('id, nama, email, role, organization_name, created_at')
       .single();
@@ -44,8 +47,9 @@ exports.createPanitia = async (req, res, next) => {
 
     res.status(201).json({
       status: 'success',
+      statusCode: 201,
       message: 'Akun panitia berhasil dibuat.',
-      data: newPanitia
+      data: newPanitia,
     });
   } catch (err) {
     next(err);
@@ -65,8 +69,9 @@ exports.getPanitiaList = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       total: panitiaList.length,
-      data: panitiaList
+      data: panitiaList,
     });
   } catch (err) {
     next(err);
@@ -77,7 +82,8 @@ exports.getPanitiaList = async (req, res, next) => {
 exports.updatePanitia = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nama, email, password } = req.body;
+    // PERUBAHAN 1: Tambahkan organization_name di destructuring req.body
+    const { nama, email, password, organization_name } = req.body;
 
     const updatePayload = {};
     if (nama) updatePayload.nama = nama;
@@ -98,20 +104,22 @@ exports.updatePanitia = async (req, res, next) => {
       .single();
 
     if (error || !updatedPanitia) {
-      return res.status(404).json({ message: 'Akun panitia tidak ditemukan.' });
+      // PERUBAHAN 2: Menggunakan AppError untuk 404 Not Found
+      return next(new AppError('Akun panitia tidak ditemukan.', 404));
     }
 
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       message: 'Data panitia berhasil diperbarui.',
-      data: updatedPanitia
+      data: updatedPanitia,
     });
   } catch (err) {
     next(err);
   }
 };
 
-// 4. BONUS: GET /admin/users (Melihat Seluruh User / Filter per Role)
+// 4. GET /admin/users (Melihat Seluruh User / Filter per Role)
 exports.getAllUsers = async (req, res, next) => {
   try {
     const { role } = req.query; // Opsional: ?role=mahasiswa / ?role=panitia
@@ -130,8 +138,9 @@ exports.getAllUsers = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       total: users.length,
-      data: users
+      data: users,
     });
   } catch (err) {
     next(err);

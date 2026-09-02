@@ -1,43 +1,43 @@
 const supabase = require('../config/supabase');
+const AppError = require('../utils/appError');
 
 // GET /panitia/dashboard/stats
 exports.getPanitiaDashboardStats = async (req, res, next) => {
   try {
-    const panitiaId = req.user.id; // Ambil ID Panitia dari JWT
+    const panitiaId = req.user.id;
 
-    // 1. Ambil seluruh event yang dibuat oleh panitia ini
+    // 1. Ambil seluruh event milik panitia ini
     const { data: events, error: eventsError } = await supabase
       .from('events')
       .select('id, status')
-      .eq('created_by', panitiaId);
+      .eq('created_by', panitiaId)
+      .is('deleted_at', null);
 
-    if (eventsError) throw eventsError;
-
-    // Jika panitia belum pernah membuat event sama sekali
-    if (!events || events.length === 0) {
-      return res.status(200).json({
-        status: 'success',
-        data: {
-          total_events: 0,
-          total_participants: 0,
-          stats_by_status: {
-            draft: 0,
-            published: 0,
-            completed: 0,
-            canceled: 0
-          }
-        }
-      });
+    if (eventsError) {
+      return next(new AppError(`Gagal mengambil statistik event: ${eventsError.message}`, 400));
     }
 
-    // 2. Hitung statistik event per status
-    const eventIds = events.map(event => event.id);
     const statsByStatus = {
       draft: 0,
+      pending_verification: 0,
       published: 0,
       completed: 0,
       canceled: 0
     };
+
+    if (!events || events.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        data: {
+          total_events: 0,
+          total_participants: 0,
+          stats_by_status: statsByStatus
+        }
+      });
+    }
+
+    const eventIds = events.map(event => event.id);
 
     events.forEach(event => {
       if (statsByStatus[event.status] !== undefined) {
@@ -45,17 +45,19 @@ exports.getPanitiaDashboardStats = async (req, res, next) => {
       }
     });
 
-    // 3. Hitung total peserta terdaftar pada event-event milik panitia ini
+    // 2. Hitung total peserta terdaftar
     const { count: totalParticipants, error: regError } = await supabase
       .from('registrations')
       .select('id', { count: 'exact', head: true })
       .in('event_id', eventIds);
 
-    if (regError) throw regError;
+    if (regError) {
+      return next(new AppError(`Gagal mengambil statistik peserta: ${regError.message}`, 400));
+    }
 
-    // 4. Return respons statistik
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       data: {
         total_events: events.length,
         total_participants: totalParticipants || 0,
@@ -70,45 +72,52 @@ exports.getPanitiaDashboardStats = async (req, res, next) => {
 // GET /admin/dashboard/stats
 exports.getAdminDashboardStats = async (req, res, next) => {
   try {
-    // 1. Hitung total user & rincian per role
-    const { count: totalUsers } = await supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true });
+    const statuses = ['draft', 'pending_verification', 'published', 'completed', 'canceled'];
 
-    const { count: totalMahasiswa } = await supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'mahasiswa');
+    // MENJALANKAN SELURUH QUERY SECARA PARALEL DENGAN PROMISE.ALL
+    const [
+      { count: totalUsers, error: userErr },
+      { count: totalMahasiswa },
+      { count: totalPanitia },
+      { count: totalEvents, error: eventErr },
+      { count: totalRegistrations, error: regErr },
+      ...statusCounts // Hasil count per status event
+    ] = await Promise.all([
+      // 1. Query Users
+      supabase.from('users').select('id', { count: 'exact', head: true }),
+      supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'mahasiswa'),
+      supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'panitia'),
+      
+      // 2. Query Total Events
+      supabase.from('events').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+      
+      // 3. Query Total Registrations
+      supabase.from('registrations').select('id', { count: 'exact', head: true }),
+      
+      // 4. Query Events Per Status (Paralel untuk 5 status)
+      ...statuses.map(status =>
+        supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', status)
+          .is('deleted_at', null)
+      )
+    ]);
 
-    const { count: totalPanitia } = await supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'panitia');
+    // Handle Error dari query utama jika ada
+    if (userErr) return next(new AppError(`Gagal mengambil data user: ${userErr.message}`, 400));
+    if (eventErr) return next(new AppError(`Gagal mengambil data event: ${eventErr.message}`, 400));
+    if (regErr) return next(new AppError(`Gagal mengambil data registrasi: ${regErr.message}`, 400));
 
-    // 2. Hitung total event & per status
-    const { count: totalEvents } = await supabase
-      .from('events')
-      .select('id', { count: 'exact', head: true });
-
-    const statuses = ['draft', 'published', 'completed', 'canceled'];
+    // Menyusun objek eventsByStatus dari hasil Promise.all
     const eventsByStatus = {};
+    statuses.forEach((status, index) => {
+      eventsByStatus[status] = statusCounts[index].count || 0;
+    });
 
-    for (const status of statuses) {
-      const { count } = await supabase
-        .from('events')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', status);
-      eventsByStatus[status] = count || 0;
-    }
-
-    // 3. Hitung total registrasi
-    const { count: totalRegistrations } = await supabase
-      .from('registrations')
-      .select('id', { count: 'exact', head: true });
-
-    // 4. Return respons agregat
     res.status(200).json({
       status: 'success',
+      statusCode: 200,
       data: {
         total_users: totalUsers || 0,
         total_mahasiswa: totalMahasiswa || 0,
