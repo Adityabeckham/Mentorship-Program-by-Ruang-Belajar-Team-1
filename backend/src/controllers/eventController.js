@@ -588,10 +588,13 @@ exports.verifyEventByAdmin = async (req, res, next) => {
         updated_at: new Date(),
       })
       .eq('id', id)
+      .eq('status', 'pending_verification')
       .select('id, title, status, rejection_reason, updated_at')
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError || !updatedEvent) {
+      return next(new AppError("Gagal memverifikasi event. Event mungkin sudah diverifikasi oleh admin lain atau statusnya telah berubah.", 400));
+    }
 
     res.status(200).json({
       status: 'success',
