@@ -273,8 +273,7 @@ exports.updateEvent = async (req, res, next) => {
   try {
     const { id } = req.params;
     const panitiaId = req.user.id;
-    const { title, description, category, speaker, banner_image, location, event_date, quota, status } = req.body;
-    const targetStatus = req.user.role === 'admin' && status ? status : undefined;
+    const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
 
     const { data: existingEvent, error: findError } = await supabase
       .from('events')
@@ -306,7 +305,6 @@ exports.updateEvent = async (req, res, next) => {
         ...(location && { location }),
         ...(event_date && { event_date }),
         ...(quota && { quota }),
-        ...(targetStatus && { status: targetStatus }),
         updated_at: new Date(),
       })
       .eq('id', id)
@@ -322,7 +320,6 @@ exports.updateEvent = async (req, res, next) => {
           ...(location && { location }),
           ...(event_date && { event_date }),
           ...(quota && { quota }),
-          ...(targetStatus && { status: targetStatus }),
           updated_at: new Date(),
         })
         .eq('id', id)
