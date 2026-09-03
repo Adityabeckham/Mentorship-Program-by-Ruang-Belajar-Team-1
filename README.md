@@ -1,6 +1,6 @@
-# 🎓 EventHub Kampus — Platform Terintegrasi Manajemen Event Kampus
+# 🚀 EventHub Kampus — Platform Terintegrasi Manajemen Event Kampus
 
-[![Project Status](https://img.shields.io/badge/Project_Status-Sprint_2_Active-brightgreen.svg)](https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1)
+[![Project Status](https://img.shields.io/badge/Project_Status-Sprint_7_Active-brightgreen.svg)](https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1)
 [![Backend](https://img.shields.io/badge/Backend-Express.js_v5-blue.svg)](https://expressjs.com/)
 [![Database](https://img.shields.io/badge/Database-Supabase_PostgreSQL-green.svg)](https://supabase.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-React.js_%2B_Tailwind_CSS-cyan.svg)](https://reactjs.org/)
@@ -8,7 +8,11 @@
 
 ---
 
-## 📌 1. Project Overview
+<video src="https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce" width="100%" controls></video>
+
+---
+
+## 📋 1. Project Overview
 
 **EventHub Kampus** adalah platform terintegrasi berbasis web yang dirancang khusus untuk menyederhanakan dan mengotomatiskan seluruh alur manajemen event di lingkungan kampus (UKM, BEM, Himpunan Mahasiswa). 
 
@@ -16,17 +20,17 @@ Platform ini memfasilitasi proses publikasi event resmi organisasi, pendaftaran 
 
 ---
 
-## 💥 2. Problem Statement (Latar Belakang Masalah - WHY)
+## ❓ 2. Problem Statement (Latar Belakang Masalah - WHY)
 
 Pengelolaan event di tingkat kampus saat ini masih menghadapi kendala operasional yang signifikan:
-- 📑 **Data Tersebar & Terfragmentasi:** Penggunaan Google Form dan Spreadsheet terpisah menyebabkan data pendaftaran peserta tersebar di banyak file tanpa database terpusat.
+- 📁 **Data Tersebar & Terfragmentasi:** Penggunaan Google Form dan Spreadsheet terpisah menyebabkan data pendaftaran peserta tersebar di banyak file tanpa database terpusat.
 - 📊 **Ketiadaan Dashboard Terpusat:** Panitia tidak memiliki tools real-time untuk memantau tren pendaftaran, kuota peserta, dan statistik event secara efisien.
 - 📝 **Absensi Manual & Vulnerable:** Pencatatan kehadiran berbasis kertas atau checklist manual rawan *human error*, memakan waktu lama, dan sulit direkap untuk laporan pertanggungjawaban.
 - 📜 **Tidak Ada Riwayat Event Terstruktur:** Kampus dan organisasi tidak memiliki sistem rekam jejak (*history record*) event yang rapi antar periode kepengurusan.
 
 ---
 
-## 👥 3. Target User (WHO)
+## 🎯 3. Target User (WHO)
 
 Aplikasi ini melayani 3 tingkatan peranan pengguna (*3-Tier User Role*):
 
@@ -62,20 +66,46 @@ EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi ama
 
 ---
 
-## 🏛️ 5. Arsitektur Platform (ARCHITECTURE)
+## 📁 5. Project Structure
+
+```text
+Mentorship-Program-by-Ruang-Belajar-Team-1/
+├── backend/
+│   ├── src/
+│   │   ├── config/         # Konfigurasi Database Supabase & Environment
+│   │   ├── controllers/    # Handler Logika Bisnis API (Auth, Event, Registration, Attendance, User, Dashboard)
+│   │   ├── middlewares/    # Auth JWT, Role RBAC, Rate Limiter, XSS Sanitizer, Centralized Error Handler
+│   │   ├── routes/         # Definisi Router Express (/api/v1)
+│   │   ├── utils/          # Helper Functions & Custom AppError
+│   │   └── validators/     # Skema Validasi Input Request
+│   ├── tests/              # Automated Security & Integration Test Suite (Jest)
+│   ├── .env.example        # Template Konfigurasi Environment Backend
+│   └── server.js           # Entry Point Server Express Backend
+├── frontend/
+│   ├── src/
+│   │   ├── components/     # Komponen UI Reusable (Navbar, Footer, Card, Modal, Protection Route)
+│   │   ├── pages/          # Halaman Aplikasi (Home, Catalog, Login/Register, Dashboard Panitia & Admin)
+│   │   ├── services/       # Client API Axios Interceptors
+│   │   └── context/        # Global Auth State Management
+│   ├── .env.example        # Template Konfigurasi Environment Frontend
+│   ├── index.html          # HTML Entry Point
+│   └── vite.config.js      # Konfigurasi Vite Build System
+├── docs_project/           # Dokumentasi Spesifikasi & Arsitektur Lengkap
+│   ├── architecture.html                                 # Diagram Arsitektur HTML Interaktif (Archify)
+│   ├── archify-visual-checks/                            # Laporan & Screenshot Bukti Pengujian Visual
+│   ├── EventHub-Kampus-ERD-API-Contract-v2.md            # Dokumentasi Lengkap API Contract v2
+│   └── Security-Review-Signoff-Sprint-6.md              # Laporan Sign-Off Keamanan Sprint 6
+└── README.md
+```
+
+---
+
+## 🏛️ 6. Arsitektur Platform (ARCHITECTURE)
 
 Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus** yang dikembangkan menggunakan **Archify** dan divalidasi langsung dari bukti kode sumber repositori:
 
 ### 🗺️ Diagram Arsitektur Interaktif
 - 🌐 **[Buka Diagram Arsitektur Interaktif (HTML)](docs_project/architecture.html)** - *Diagram SVG interaktif dengan tema Gelap/Terang, pencarian komponen, penelusuran hubungan (trace flow), dan guided views.*
-
-
-### 🎥 Demo Video Arsitektur Platform
-Berikut adalah video demo alur interaktif diagram arsitektur EventHub Kampus:
-
-https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce
-
-<video src="https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce" width="100%" controls></video>
 
 ### 🔍 Ringkasan Komponen Utama
 - **Frontend App:** Aplikasi Single Page Application (SPA) berbasis Vite React. Menggunakan Axios client terpusat untuk komunikasi REST API ke backend.
@@ -95,7 +125,7 @@ Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran laya
 
 ---
 
-## ⚙️ 6. Cara Menjalankan Project (Local Development)
+## ⚙️ 7. Cara Menjalankan Project (Local Development)
 
 ### 📋 Prasyarat Sistem
 - **Node.js**: v18.0.0 atau versi terbaru (direkomendasikan LTS)
@@ -162,7 +192,9 @@ npm run dev
 ```
 *Aplikasi Frontend berjalan di:* `http://localhost:5173`
 
-## 👥 7. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
+---
+
+## 👥 8. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
 
 | Nama Lengkap | GitHub Username | Role | Kontribusi / Scope Task |
 | --- | --- | --- | --- |
@@ -182,4 +214,5 @@ npm run dev
 - 📘 [Product Requirement Document (PRD)](docs_project/EventHub%20Kampus%20-%20PRD.md)
 - 📐 [ERD & API Contract v2 Specification](docs_project/EventHub-Kampus-ERD-API-Contract-v2.md)
 - 📊 [Kanban Task Board & Team Breakdown](docs_project/EventHub-Kampus-Kanban-FULL%20%281%29.md)
+- 🛡️ [Security Audit & Sign-off Report (Sprint 6)](docs_project/Security-Review-Signoff-Sprint-6.md)
 - 🤝 [Panduan Kontribusi (CONTRIBUTING.md)](docs_project/Contributing.md)
