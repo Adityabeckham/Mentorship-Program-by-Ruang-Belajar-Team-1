@@ -274,6 +274,7 @@ exports.updateEvent = async (req, res, next) => {
     const { id } = req.params;
     const panitiaId = req.user.id;
     const { title, description, category, speaker, banner_image, location, event_date, quota, status } = req.body;
+    const targetStatus = req.user.role === 'admin' && status ? status : undefined;
 
     const { data: existingEvent, error: findError } = await supabase
       .from('events')
@@ -289,6 +290,10 @@ exports.updateEvent = async (req, res, next) => {
     if (req.user.role === 'panitia' && existingEvent.created_by !== panitiaId) {
       return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk mengedit event milik panitia lain.', 403));
     }
+    // SECURITY GUARD: Panitia tidak dapat mengedit event yang sedang diverifikasi atau sudah dipublikasikan
+    if (req.user.role === 'panitia' && !['draft', 'rejected'].includes(existingEvent.status)) {
+      return next(new AppError(`Event berstatus '${existingEvent.status}' tidak dapat diubah oleh panitia.`, 400));
+    }
 
     let { data: updatedEvent, error: updateError } = await supabase
       .from('events')
@@ -301,7 +306,7 @@ exports.updateEvent = async (req, res, next) => {
         ...(location && { location }),
         ...(event_date && { event_date }),
         ...(quota && { quota }),
-        ...(status && { status }),
+        ...(targetStatus && { status: targetStatus }),
         updated_at: new Date(),
       })
       .eq('id', id)
@@ -317,7 +322,7 @@ exports.updateEvent = async (req, res, next) => {
           ...(location && { location }),
           ...(event_date && { event_date }),
           ...(quota && { quota }),
-          ...(status && { status }),
+          ...(targetStatus && { status: targetStatus }),
           updated_at: new Date(),
         })
         .eq('id', id)
@@ -557,6 +562,9 @@ exports.verifyEventByAdmin = async (req, res, next) => {
 
     if (findError || !event) {
       return next(new AppError('Event tidak ditemukan.', 404));
+    }
+    if (event.status !== 'pending_verification') {
+      return next(new AppError(`Hanya event berstatus 'pending_verification' yang dapat diverifikasi oleh admin. Status saat ini: '${event.status}'.`, 400));
     }
 
     let newStatus = '';
