@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 
 ---
-## ARCHITECTURE PREVEIW
+## ARCHITECTURE PREVIEW
 <video src="https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce" width="100%" controls></video>
 
 ---
