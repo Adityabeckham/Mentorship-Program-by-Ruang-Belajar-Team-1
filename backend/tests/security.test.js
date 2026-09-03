@@ -1,7 +1,8 @@
 const request = require('supertest');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 
-// Mock supabase before requiring controllers
+// 1. Mock Supabase Cloud Client
 jest.mock('../src/config/supabase', () => {
   return {
     from: jest.fn().mockImplementation((table) => {
@@ -29,81 +30,98 @@ jest.mock('../src/config/supabase', () => {
   };
 });
 
+// 2. Mock jsonwebtoken to test REAL production authenticateToken middleware
+jest.mock('jsonwebtoken', () => ({
+  verify: jest.fn().mockImplementation((token) => {
+    if (token === 'valid-panitia-token') {
+      return { id: 'panitia-uuid-1', role: 'panitia' };
+    }
+    if (token === 'valid-admin-token') {
+      return { id: 'admin-uuid-1', role: 'admin' };
+    }
+    if (token === 'valid-mahasiswa-token') {
+      return { id: 'mahasiswa-uuid-1', role: 'mahasiswa' };
+    }
+    throw new Error('Invalid token');
+  }),
+}));
+
 const eventController = require('../src/controllers/eventController');
+const { authenticateToken } = require('../src/middlewares/authMiddleware');
+const { authorizeRoles } = require('../src/middlewares/roleMiddleware');
 const sanitizeInput = require('../src/middlewares/sanitizeMiddleware');
 const errorHandler = require('../src/middlewares/errorHandler');
 
+// Setup Express app mounting REAL production middlewares
 const app = express();
 app.use(express.json());
 app.use(sanitizeInput);
 
-app.put('/api/v1/events/:id', (req, res, next) => {
-  req.user = req.headers['x-mock-user'] ? JSON.parse(req.headers['x-mock-user']) : null;
-  if (!req.user) return res.status(401).json({ status: 'fail', message: 'Unauthorized' });
-  next();
-}, eventController.updateEvent);
+// Route testing Panitia update event (Real authenticateToken & authorizeRoles)
+app.put(
+  '/api/v1/events/:id',
+  authenticateToken,
+  authorizeRoles('panitia', 'admin'),
+  eventController.updateEvent
+);
 
-app.patch('/api/v1/admin/events/:id/verify', (req, res, next) => {
-  req.user = req.headers['x-mock-user'] ? JSON.parse(req.headers['x-mock-user']) : null;
-  if (!req.user) return res.status(401).json({ status: 'fail', message: 'Unauthorized' });
-  if (req.user.role !== 'admin') return res.status(403).json({ status: 'fail', message: 'Forbidden' });
-  next();
-}, eventController.verifyEventByAdmin);
+// Route testing Admin verify event (Real authenticateToken & authorizeRoles)
+app.patch(
+  '/api/v1/admin/events/:id/verify',
+  authenticateToken,
+  authorizeRoles('admin'),
+  eventController.verifyEventByAdmin
+);
 
 app.use(errorHandler);
 
-describe('Sprint 6 Security Review & Guard Verification', () => {
+describe('Sprint 6 Security Review & Guard Verification (Production Middlewares)', () => {
   describe('1. Event Status Transition Guards', () => {
     it('harus menolak transisi status ilegal (panitia tidak dapat merubah status ke published via PUT)', async () => {
-      const mockPanitia = { id: 'panitia-uuid-1', role: 'panitia' };
-
       const res = await request(app)
         .put('/api/v1/events/mock-event-id')
-        .set('x-mock-user', JSON.stringify(mockPanitia))
+        .set('Authorization', 'Bearer valid-panitia-token')
         .send({
           title: 'Updated Event Title',
           status: 'published', // Transisi ilegal dari panitia
         });
 
       expect(res.statusCode).toBe(200);
-      // Status pada response data harus TETAP 'draft' (tidak terpengaruh payload status: published)
+      // Data status harus TETAP 'draft' (tidak terpengaruh status: published dari body)
       expect(res.body.data.status).toBe('draft');
     });
 
-    it('harus menolak verifikasi admin jika status event bukan pending_verification', async () => {
-      const mockAdmin = { id: 'admin-uuid-1', role: 'admin' };
-
+    it('harus menolak verifikasi admin dengan HTTP 400 jika status event bukan pending_verification', async () => {
       const res = await request(app)
         .patch('/api/v1/admin/events/mock-event-id/verify')
-        .set('x-mock-user', JSON.stringify(mockAdmin))
+        .set('Authorization', 'Bearer valid-admin-token')
         .send({
           action: 'approve',
         });
 
-      // Karena status di-mock sebagai 'draft', admin verify harus GAGAL dengan 400 Bad Request
       expect(res.statusCode).toBe(400);
-      expect(res.body.message).toContain('pending_verification');
+      expect(res.body.message).toContain("Hanya event berstatus 'pending_verification' yang dapat diverifikasi oleh admin");
     });
   });
 
-  describe('2. Endpoint Guards & RBAC Verification', () => {
-    it('harus mengembalikan 401 Unauthorized jika request tanpa token', async () => {
+  describe('2. Real Production Endpoint Guards & RBAC Verification', () => {
+    it('harus mengembalikan 401 Unauthorized jika request tanpa token authorization', async () => {
       const res = await request(app)
-        .patch('/api/v1/admin/events/some-id/verify')
+        .patch('/api/v1/admin/events/mock-event-id/verify')
         .send({ action: 'approve' });
 
       expect(res.statusCode).toBe(401);
+      expect(res.body.message).toContain('Akses ditolak. Token tidak ditemukan.');
     });
 
-    it('harus mengembalikan 403 Forbidden jika role bukan admin', async () => {
-      const mockMahasiswa = { id: 'mahasiswa-uuid-1', role: 'mahasiswa' };
-
+    it('harus mengembalikan 403 Forbidden jika role mahasiswa mencoba mengakses endpoint admin', async () => {
       const res = await request(app)
-        .patch('/api/v1/admin/events/some-id/verify')
-        .set('x-mock-user', JSON.stringify(mockMahasiswa))
+        .patch('/api/v1/admin/events/mock-event-id/verify')
+        .set('Authorization', 'Bearer valid-mahasiswa-token')
         .send({ action: 'approve' });
 
       expect(res.statusCode).toBe(403);
+      expect(res.body.message).toContain('Akses ditolak');
     });
   });
 
