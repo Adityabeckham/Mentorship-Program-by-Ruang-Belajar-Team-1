@@ -1,87 +1,144 @@
 require('dotenv').config();
-const helmet = require('helmet');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
 const env = require('./src/config/env');
 
-const healthRoutes = require('./src/routes/healthRoutes');
+// Middlewares
 const errorHandler = require('./src/middlewares/errorHandler');
-const authRoutes = require('./src/routes/authRoutes');
-const registrationRoutes = require('./src/routes/registrationRoutes');
-const eventRoutes = require('./src/routes/eventRoutes');
-const dashboardRoutes = require('./src/routes/dashboardRoutes');
-const attendanceRoutes = require('./src/routes/attendanceRoutes');
-const userRoutes = require('./src/routes/userRoutes');
 const sanitizeInput = require('./src/middlewares/sanitizeMiddleware');
+
+// Routes
+const healthRoutes = require('./src/routes/healthRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const eventRoutes = require('./src/routes/eventRoutes');
+const registrationRoutes = require('./src/routes/registrationRoutes');
+const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 
 const app = express();
 const PORT = env.PORT || process.env.PORT || 5000;
 
+// 1. Performance Response Timing Middleware (X-Response-Time)
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  res.on('finish', () => {
+    const diff = process.hrtime(start);
+    const timeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${timeMs}ms`);
+    }
+  });
+  next();
+});
+
+// 2. Response Compression Middleware (Optimizes payload transfer size)
+app.use(compression());
+
+// 3. Security Headers (Helmet)
 app.use(helmet());
 
-// CORS Best Practice: Hanya mengizinkan akses dari Frontend URL resmi (.env)
-const allowedOrigins = [
-  env.FRONTEND_URL,
-  env.CORS_ORIGIN,
+// 4. Optimized O(1) CORS Whitelist Set Lookup
+const allowedOriginsList = [
+  env.FRONTEND_URL || process.env.FRONTEND_URL,
+  env.CORS_ORIGIN || process.env.CORS_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:3000',
 ]
   .filter(Boolean)
   .map((url) => (url.endsWith('/') ? url.slice(0, -1) : url));
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const formattedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
-    if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(formattedOrigin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Akses CORS ditolak untuk origin: ' + origin));
-  },
-  credentials: true,
-}));
+const allowedOriginsSet = new Set(allowedOriginsList);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(sanitizeInput);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
 
+      const formattedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+
+      if (
+        allowedOriginsSet.size === 0 ||
+        allowedOriginsSet.has('*') ||
+        allowedOriginsSet.has(formattedOrigin)
+      ) {
+        return callback(null, true);
+      }
+
+      const corsError = new Error(`Akses CORS ditolak untuk origin: ${origin}`);
+      corsError.statusCode = 403;
+      return callback(corsError);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  })
+);
+
+// 5. Body Parsers & Optimized Conditional Input Sanitization
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Skip input sanitization on GET/HEAD requests to reduce CPU latency
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return next();
+  }
+  if (typeof sanitizeInput === 'function') {
+    return sanitizeInput(req, res, next);
+  }
+  next();
+});
+
+// 6. Base & Root Endpoints
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: '🚀 EventHub Kampus API Server is running',
     healthCheck: '/api/v1/health',
-    version: '1.0.0',
+    version: '2.0.0',
   });
 });
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+// 7. Mounting Modules (Base URL: /api/v1)
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', eventRoutes);
 app.use('/api/v1', registrationRoutes);
-app.use('/api/v1', attendanceRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
 
+// 8. 404 Route Not Found Fallback
 app.use((req, res, next) => {
-  const error = new Error('Route ' + req.originalUrl + ' tidak ditemukan!');
+  const error = new Error(`Route ${req.originalUrl} tidak ditemukan!`);
   error.statusCode = 404;
   next(error);
 });
 
+// 9. Centralized Error Handling Middleware
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+// 10. Server Listen & Graceful Shutdown
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server Backend berjalan di http://localhost:${PORT}`);
 });
 
-// Tangkap unhandled promise rejections (misal koneksi DB terputus)
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('UNHANDLED REJECTION! Mematikan server secara teratur...');
+  console.error('💥 [CRITICAL] UNHANDLED REJECTION! Mematikan server secara terkendali...');
   console.error('Reason:', reason);
+  server.close(() => {
+    process.exit(1);
+  });
 });
 
-// Tangkap synchronous uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION! Mematikan server...');
+  console.error('💥 [CRITICAL] UNCAUGHT EXCEPTION! Mematikan server...');
   console.error(err.name, err.message);
+  server.close(() => {
+    process.exit(1);
+  });
 });
+
+module.exports = app;

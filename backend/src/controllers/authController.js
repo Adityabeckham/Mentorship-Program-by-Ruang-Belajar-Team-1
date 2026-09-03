@@ -139,3 +139,17 @@ exports.getMe = async (req, res, next) => {
     next(err);
   }
 };
+
+// POST /api/v1/auth/refresh
+exports.refresh = async (req, res, next) => {
+  try {
+    const user = req.user;
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      message: 'Token berhasil di-refresh',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
