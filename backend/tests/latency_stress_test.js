@@ -11,6 +11,9 @@ supabase.from = function (table) {
     order: function () { return this; },
     limit: function () { return this; },
     range: function () { return this; },
+    maybeSingle: async function () {
+      return { data: { id: 'mock-user-1', nama: 'Test User', email: 'test@kampus.ac.id', role: 'mahasiswa' }, error: null };
+    },
     single: async function () {
       return { data: { id: 'mock-1', title: 'Mock Event', status: 'published' }, error: null };
     },
@@ -33,7 +36,7 @@ const PORT = 5005;
 
 async function runBenchmark() {
   console.log('==================================================');
-  console.log('⚡ STARTING API LATENCY & MEMORY STRESS TEST');
+  console.log('⚡ STARTING API LATENCY, RESPONSE TIMING & MEMORY AUDIT');
   console.log('==================================================');
 
   const server = app.listen(PORT);
@@ -49,6 +52,7 @@ async function runBenchmark() {
   ];
 
   let totalPassed = 0;
+  let responseTimeHeaderVerified = false;
 
   for (const ep of endpoints) {
     const latencies = [];
@@ -62,12 +66,15 @@ async function runBenchmark() {
         const reqStart = Date.now();
         const req = http.get('http://localhost:' + PORT + ep.path, (res) => {
           let body = '';
+          if (res.headers['x-response-time']) {
+            responseTimeHeaderVerified = true;
+          }
           res.on('data', (chunk) => (body += chunk));
           res.on('end', () => {
             const reqEnd = Date.now();
             const latency = reqEnd - reqStart;
             latencies.push(latency);
-            resolve({ statusCode: res.statusCode, latency });
+            resolve({ statusCode: res.statusCode, latency, responseTimeHeader: res.headers['x-response-time'] });
           });
         });
         req.on('error', (err) => {
@@ -78,7 +85,7 @@ async function runBenchmark() {
       });
     });
 
-    await Promise.all(promises);
+    const results = await Promise.all(promises);
     const batchDuration = Date.now() - startBatchTime;
 
     const avgLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
@@ -93,6 +100,7 @@ async function runBenchmark() {
     console.log('   - Avg Latency:    ', avgLatency.toFixed(2), 'ms');
     console.log('   - p95 Latency:    ', p95Latency, 'ms');
     console.log('   - Max Latency:    ', maxLatency, 'ms');
+    console.log('   - X-Response-Time Header:', results[0].responseTimeHeader || 'None');
 
     const isSub200ms = avgLatency < 200;
     if (isSub200ms) totalPassed++;
@@ -102,7 +110,7 @@ async function runBenchmark() {
   const finalMemory = process.memoryUsage();
   const memoryDeltaMB = (finalMemory.heapUsed - initialMemory.heapUsed) / 1024 / 1024;
   console.log('\n==================================================');
-  console.log('🧠 MEMORY FOOTPRINT AUDIT');
+  console.log('🧠 MEMORY & HEADER AUDIT');
   console.log('==================================================');
   console.log('📊 Initial Heap: ', (initialMemory.heapUsed / 1024 / 1024).toFixed(2), 'MB');
   console.log('📊 Final Heap:   ', (finalMemory.heapUsed / 1024 / 1024).toFixed(2), 'MB');
@@ -110,10 +118,11 @@ async function runBenchmark() {
 
   const memoryIsStable = Math.abs(memoryDeltaMB) < 25;
   console.log('🟢 Memory Footprint Status:', memoryIsStable ? 'STABLE' : 'UNSTABLE');
+  console.log('🟢 X-Response-Time Header Status:', responseTimeHeaderVerified ? 'VERIFIED (PRESENT)' : 'MISSING');
 
   server.close();
-  if (totalPassed === endpoints.length && memoryIsStable) {
-    console.log('\n🎉 ALL PERFORMANCE & LATENCY ACCEPTANCE CRITERIA PASSED!\n');
+  if (totalPassed === endpoints.length && memoryIsStable && responseTimeHeaderVerified) {
+    console.log('\n🎉 ALL PERFORMANCE, TIMING HEADER & LATENCY ACCEPTANCE CRITERIA PASSED!\n');
     process.exit(0);
   } else {
     process.exit(1);

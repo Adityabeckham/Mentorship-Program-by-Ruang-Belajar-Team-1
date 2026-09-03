@@ -140,14 +140,77 @@ exports.getMe = async (req, res, next) => {
   }
 };
 
-// POST /api/v1/auth/refresh
+// 4. POST /api/v1/auth/refresh
 exports.refresh = async (req, res, next) => {
   try {
-    const user = req.user;
+    const refreshToken =
+      req.body?.refreshToken ||
+      req.body?.refresh_token ||
+      (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
+        ? req.headers.authorization.split(' ')[1]
+        : null);
+
+    if (!refreshToken) {
+      return next(new AppError('Refresh token diperlukan.', 400));
+    }
+
+    const refreshSecret =
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'supersecretjwtkey123';
+
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, refreshSecret);
+    } catch (verifyErr) {
+      try {
+        decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'supersecretjwtkey123');
+      } catch (err2) {
+        return next(new AppError('Refresh token tidak valid atau telah kedaluwarsa.', 401));
+      }
+    }
+
+    const userId = decoded.id || decoded.userId;
+    if (!userId) {
+      return next(new AppError('Payload refresh token tidak valid.', 401));
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, nama, email, role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error || !user) {
+      return next(new AppError('Pengguna tidak ditemukan.', 404));
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'supersecretjwtkey123';
+    const newAccessToken = jwt.sign(
+      { id: user.id, role: user.role, email: user.email },
+      jwtSecret,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+    );
+
+    const newRefreshToken = jwt.sign(
+      { id: user.id, role: user.role },
+      refreshSecret,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+    );
+
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      message: 'Token berhasil di-refresh',
+      message: 'Token berhasil di-refresh.',
+      data: {
+        token: newAccessToken,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          id: user.id,
+          nama: user.nama,
+          email: user.email,
+          role: user.role,
+        },
+      },
     });
   } catch (err) {
     next(err);

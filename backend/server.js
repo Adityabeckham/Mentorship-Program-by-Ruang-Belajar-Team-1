@@ -14,22 +14,26 @@ const healthRoutes = require('./src/routes/healthRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const eventRoutes = require('./src/routes/eventRoutes');
 const registrationRoutes = require('./src/routes/registrationRoutes');
+const attendanceRoutes = require('./src/routes/attendanceRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 
 const app = express();
 const PORT = env.PORT || process.env.PORT || 5000;
 
-// 1. Performance Response Timing Middleware (X-Response-Time)
+// 1. Performance Response Timing Middleware (Guaranteed X-Response-Time header before flush)
 app.use((req, res, next) => {
   const start = process.hrtime();
-  res.on('finish', () => {
-    const diff = process.hrtime(start);
-    const timeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+  const originalWriteHead = res.writeHead;
+
+  res.writeHead = function (...args) {
     if (!res.headersSent) {
+      const diff = process.hrtime(start);
+      const timeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
       res.setHeader('X-Response-Time', `${timeMs}ms`);
     }
-  });
+    return originalWriteHead.apply(this, args);
+  };
   next();
 });
 
@@ -107,6 +111,7 @@ app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', eventRoutes);
 app.use('/api/v1', registrationRoutes);
+app.use('/api/v1', attendanceRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
 
