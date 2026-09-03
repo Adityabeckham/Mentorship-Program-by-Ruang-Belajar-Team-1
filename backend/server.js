@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const env = require('./src/config/env');
 
 // Middlewares
@@ -20,36 +21,55 @@ const userRoutes = require('./src/routes/userRoutes');
 const app = express();
 const PORT = env.PORT || process.env.PORT || 5000;
 
-// 1. Security Headers (Helmet)
+// 1. Performance Response Timing Middleware (Guaranteed X-Response-Time header before flush)
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  const originalWriteHead = res.writeHead;
+
+  res.writeHead = function (...args) {
+    if (!res.headersSent) {
+      const diff = process.hrtime(start);
+      const timeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+      res.setHeader('X-Response-Time', `${timeMs}ms`);
+    }
+    return originalWriteHead.apply(this, args);
+  };
+  next();
+});
+
+// 2. Response Compression Middleware (Optimizes payload transfer size)
+app.use(compression());
+
+// 3. Security Headers (Helmet)
 app.use(helmet());
 
-// 2. CORS Whitelist Domain Restriction
-const allowedOrigins = [
+// 4. Optimized O(1) CORS Whitelist Set Lookup
+const allowedOriginsList = [
   env.FRONTEND_URL || process.env.FRONTEND_URL,
   env.CORS_ORIGIN || process.env.CORS_ORIGIN,
-  'http://localhost:5173', // Vite Dev Local
+  'http://localhost:5173',
   'http://localhost:3000',
 ]
   .filter(Boolean)
   .map((url) => (url.endsWith('/') ? url.slice(0, -1) : url));
 
+const allowedOriginsSet = new Set(allowedOriginsList);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Izinkan request tanpa origin (seperti curl, mobile app, Postman)
       if (!origin) return callback(null, true);
 
       const formattedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
 
       if (
-        allowedOrigins.length === 0 ||
-        allowedOrigins.includes('*') ||
-        allowedOrigins.includes(formattedOrigin)
+        allowedOriginsSet.size === 0 ||
+        allowedOriginsSet.has('*') ||
+        allowedOriginsSet.has(formattedOrigin)
       ) {
         return callback(null, true);
       }
 
-      // Beri properti statusCode 403 agar tidak memicu 500 di error handler
       const corsError = new Error(`Akses CORS ditolak untuk origin: ${origin}`);
       corsError.statusCode = 403;
       return callback(corsError);
@@ -59,15 +79,22 @@ app.use(
   })
 );
 
-// 3. Body Parsers & Input Sanitization
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 5. Body Parsers & Optimized Conditional Input Sanitization
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-if (typeof sanitizeInput === 'function') {
-  app.use(sanitizeInput);
-}
+// Skip input sanitization on GET/HEAD requests to reduce CPU latency
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return next();
+  }
+  if (typeof sanitizeInput === 'function') {
+    return sanitizeInput(req, res, next);
+  }
+  next();
+});
 
-// 4. Base & Root Endpoints
+// 6. Base & Root Endpoints
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
@@ -79,7 +106,7 @@ app.get('/', (req, res) => {
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// 5. Mounting Modules (Base URL: /api/v1 Sesuai API Contract v2)
+// 7. Mounting Modules (Base URL: /api/v1)
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', eventRoutes);
@@ -88,22 +115,21 @@ app.use('/api/v1', attendanceRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
 
-// 6. 404 Route Not Found Fallback
+// 8. 404 Route Not Found Fallback
 app.use((req, res, next) => {
   const error = new Error(`Route ${req.originalUrl} tidak ditemukan!`);
   error.statusCode = 404;
   next(error);
 });
 
-// 7. Centralized Error Handling Middleware (Wajib ditaruh paling bawah)
+// 9. Centralized Error Handling Middleware
 app.use(errorHandler);
 
-// 8. Server Listen & Graceful Shutdown
+// 10. Server Listen & Graceful Shutdown
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server Backend berjalan di http://localhost:${PORT}`);
 });
 
-// Tangani Unhandled Rejections (misal promise database gagal tanpa catch)
 process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 [CRITICAL] UNHANDLED REJECTION! Mematikan server secara terkendali...');
   console.error('Reason:', reason);
@@ -112,7 +138,6 @@ process.on('unhandledRejection', (reason, promise) => {
   });
 });
 
-// Tangani Uncaught Exceptions (synchronous code bug)
 process.on('uncaughtException', (err) => {
   console.error('💥 [CRITICAL] UNCAUGHT EXCEPTION! Mematikan server...');
   console.error(err.name, err.message);
@@ -120,11 +145,5 @@ process.on('uncaughtException', (err) => {
     process.exit(1);
   });
 });
-
-// app.get('/test-crash', (req, res) => {
-//   // Sengaja memicu unhandled rejection
-//   Promise.reject(new Error('Simulasi unhandled rejection database error!'));
-//   res.send('Crash triggered');
-// });
 
 module.exports = app;
