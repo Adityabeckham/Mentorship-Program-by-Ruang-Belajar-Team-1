@@ -2,13 +2,33 @@ const request = require('supertest');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 
-// 1. Mock Supabase Cloud Client
+let lastUpdatePayload = null;
+
+// 1. Mock Supabase Cloud Client with payload tracking for atomic update assertions
 jest.mock('../src/config/supabase', () => {
   return {
     from: jest.fn().mockImplementation((table) => {
       return {
         select: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
+        update: jest.fn().mockImplementation((payload) => {
+          lastUpdatePayload = payload;
+          return {
+            eq: jest.fn().mockReturnThis(),
+            is: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockImplementation(async () => {
+              return {
+                data: {
+                  id: 'mock-event-id',
+                  created_by: 'panitia-uuid-1',
+                  status: payload.status || 'draft',
+                  title: payload.title || 'Draft Event',
+                },
+                error: null,
+              };
+            }),
+          };
+        }),
         eq: jest.fn().mockReturnThis(),
         is: jest.fn().mockReturnThis(),
         single: jest.fn().mockImplementation(async () => {
@@ -76,6 +96,10 @@ app.patch(
 app.use(errorHandler);
 
 describe('Sprint 6 Security Review & Guard Verification (Production Middlewares)', () => {
+  beforeEach(() => {
+    lastUpdatePayload = null;
+  });
+
   describe('1. Event Status Transition Guards', () => {
     it('harus menolak transisi status ilegal (panitia tidak dapat merubah status ke published via PUT)', async () => {
       const res = await request(app)
@@ -87,7 +111,9 @@ describe('Sprint 6 Security Review & Guard Verification (Production Middlewares)
         });
 
       expect(res.statusCode).toBe(200);
-      // Data status harus TETAP 'draft' (tidak terpengaruh status: published dari body)
+      // Assert that update payload passed to database specifically EXCLUDES status property
+      expect(lastUpdatePayload).not.toBeNull();
+      expect(lastUpdatePayload).not.toHaveProperty('status');
       expect(res.body.data.status).toBe('draft');
     });
 
