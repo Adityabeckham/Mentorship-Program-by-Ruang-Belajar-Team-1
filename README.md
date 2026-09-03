@@ -1,30 +1,20 @@
-# 🎓 EventHub Kampus — Platform Terintegrasi Manajemen Event Kampus
+# 🚀 EventHub Kampus — Platform Terintegrasi Manajemen Event Kampus
 
-[![Project Status](https://img.shields.io/badge/Project_Status-Sprint_7_Active-brightgreen.svg)](https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1)
+[![Project Status](https://img.shields.io/badge/Project_Status-Sprint_7_Active-brightgreen.svg)](https://github.com/Adityabeckham/Mentorship-Program-by-Ruang-Belajar-Team-1)
 [![Backend](https://img.shields.io/badge/Backend-Express.js_v5-blue.svg)](https://expressjs.com/)
 [![Database](https://img.shields.io/badge/Database-Supabase_PostgreSQL-green.svg)](https://supabase.com/)
-[![Frontend](https://img.shields.io/badge/Frontend-React.js_%2B_Tailwind_CSS-cyan.svg)](https://reactjs.org/)
+[![Frontend](https://img.shields.io/badge/Frontend-Vite_%2B_React.js-cyan.svg)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ---
 
-<video src="https://github.com/user-attachments/assets/d0bd08cb-d39f-4ec8-87ef-af2c98448576" width="100%" controls></video>
+## 📹 Architecture & Demo Preview
 
-##  1. Project Overview
+https://github.com/user-attachments/assets/87e7fa19-69f9-4759-8f7c-dc94cf9b94ce
+
+---
+
+## 📋 1. Project Overview & Value Proposition
 
 **EventHub Kampus** adalah platform terintegrasi berbasis web yang dirancang khusus untuk menyederhanakan dan mengotomatiskan seluruh alur manajemen event di lingkungan kampus (UKM, BEM, Himpunan Mahasiswa). 
 
@@ -32,165 +22,132 @@ Platform ini memfasilitasi proses publikasi event resmi organisasi, pendaftaran 
 
 ---
 
-##  2. Problem Statement (Latar Belakang Masalah - WHY)
+## 🛠️ 2. Tech Stack & Dependencies
 
-Pengelolaan event di tingkat kampus saat ini masih menghadapi kendala operasional yang signifikan:
-- 📑 **Data Tersebar & Terfragmentasi:** Penggunaan Google Form dan Spreadsheet terpisah menyebabkan data pendaftaran peserta tersebar di banyak file tanpa database terpusat.
-- 📊 **Ketiadaan Dashboard Terpusat:** Panitia tidak memiliki tools real-time untuk memantau tren pendaftaran, kuota peserta, dan statistik event secara efisien.
-- 📝 **Absensi Manual & Vulnerable:** Pencatatan kehadiran berbasis kertas atau checklist manual rawan *human error*, memakan waktu lama, dan sulit direkap untuk laporan pertanggungjawaban.
-- 📜 **Tidak Ada Riwayat Event Terstruktur:** Kampus dan organisasi tidak memiliki sistem rekam jejak (*history record*) event yang rapi antar periode kepengurusan.
+### Backend
+- **Core Runtime:** Node.js (v18+) & Express.js (v5)
+- **Database & Auth Storage:** Supabase PostgreSQL 15+ dengan Row Level Security (RLS)
+- **Authentication & Security:** JWT (`jsonwebtoken`), `bcryptjs`, `helmet`, `cors`, `express-rate-limit`
+- **Input Sanitization:** `sanitize-html`
+- **Testing:** Jest & Supertest
 
----
-
-##  3. Target User (WHO)
-
-Aplikasi ini melayani 3 tingkatan peranan pengguna (*3-Tier User Role*):
-
-| Role | Deskripsi & Kebutuhan Utama |
-| --- | --- |
-| 🎓 **Mahasiswa (Peserta)** | Mengeksplorasi katalog event publik, melihat detail acara, mendaftar event secara instan, dan memantau riwayat pendaftaran serta tiket digital. |
-| 🚩 **Panitia (BEM / UKM / Himpunan)** | Mengelola event miliknya (*draft*, *edit*, *soft delete*), mengajukan verifikasi ke admin (*submit*), melihat daftar peserta terdaftar, dan melakukan marking presensi kehadiran. |
-| 🛡️ **Admin (Platform-wide)** | Memiliki kontrol penuh atas platform: memverifikasi & menyetujui pengajuan event (*published* / *rejected*), mengelola akun panitia organisasi, dan memantau statistik global platform. |
+### Frontend
+- **Framework & Build Tool:** React.js (v18) + Vite
+- **Styling & UI:** Tailwind CSS + Lucide Icons
+- **State & HTTP Client:** Axios / Fetch API
 
 ---
 
-##  4. Solusi & MVP Fitur (WHAT)
+## 📁 3. Project Structure
 
-EventHub Kampus menyediakan satu platform terpusat dengan sistem autentikasi aman (JWT), kontrol akses berbasis peran (RBAC), serta database relational Supabase dengan *Row Level Security (RLS)*.
-
-###  Fitur Utama (MVP Scope)
-
-| No | Fitur | Deskripsi Singkat | Aktor Utama |
-| --- | --- | --- | --- |
-| 1 | **Autentikasi & Akun (Auth)** | Register mahasiswa, Login JWT untuk 3 roles, dan endpoint pembacaan profil (`/auth/me`). | All Users |
-| 2 | **Katalog Event (Public Catalog)** | Listing event publik berstatus `published` dengan filter tanggal, pencarian, dan halaman detail event. | Mahasiswa |
-| 3 | **Registrasi Peserta** | Pendaftaran mahasiswa ke event pilihan, validasi pencegahan pendaftaran ganda, dan halaman riwayat pendaftaran. | Mahasiswa |
-| 4 | **Dashboard Panitia & Admin** | Ringkasan statistik real-time (total event, total peserta, event aktif, status pengajuan verifikasi). | Panitia & Admin |
-| 5 | **Kelola Event (CRUD & Verifikasi)** | Panitia dapat membuat *draft* event & mengajukan verifikasi; Admin dapat melakukan peninjauan, persetujuan, atau penolakan event. | Panitia & Admin |
-| 6 | **Pencatatan Kehadiran (Attendance)** | Tabel presensi peserta per event dengan fitur toggle status kehadiran (*attended* / *absent*) secara real-time. | Panitia |
-
-###  Tech Stack
-
-- **Frontend:** React.js, Tailwind CSS, React Router, Axios, Zustand/Context API
-- **Backend:** Node.js, Express.js (v5), JWT, bcryptjs, express-validator
-- **Database:** Supabase (PostgreSQL with Row Level Security - RLS)
-- **Deployment:** Railway / Render (Backend), Vercel / Netlify (Frontend)
+```text
+Mentorship-Program-by-Ruang-Belajar-Team-1/
+├── backend/
+│   ├── src/
+│   │   ├── config/         # Database, Supabase & Environment Config
+│   │   ├── controllers/    # API Request Handlers (Auth, Events, Registrations, Attendance, Admin)
+│   │   ├── middlewares/    # Auth JWT, Role RBAC, Rate Limit, Input Sanitizer, Error Handler
+│   │   ├── routes/         # Express Router Definitions (/api/v1)
+│   │   ├── utils/          # Helper Functions & AppError Class
+│   │   └── validators/     # Input Validation Schemas
+│   ├── tests/              # Jest Automated Security & Integration Test Suite
+│   ├── .env.example        # Environment Variables Template
+│   └── server.js           # Server Entry Point & Express App Export
+├── docs_project/           # Comprehensive Technical Documentation
+│   ├── architecture.html                                 # Interactive Archify Diagram
+│   ├── archify-visual-checks/                            # Visual Inspection Screenshots
+│   ├── EventHub-Kampus-ERD-API-Contract-v2.md            # Complete API Contract v2 Specs
+│   └── Security-Review-Signoff-Sprint-6.md              # Security Audit Sign-off Report
+└── README.md
+```
 
 ---
 
-##  5. Arsitektur Platform (ARCHITECTURE)
+## ⚡ 4. Cara Menjalankan Project (Local Development)
 
-Berikut adalah diagram arsitektur interaktif high-level untuk **EventHub Kampus** yang dikembangkan menggunakan **Archify** dan divalidasi langsung dari bukti kode sumber repositori:
+### 4.1 Backend Setup (`backend/`)
 
-###  Diagram Arsitektur Interaktif
--  **[Buka Diagram Arsitektur Interaktif (HTML)](docs_project/architecture.html)** - *Diagram SVG interaktif dengan tema Gelap/Terang, pencarian komponen, penelusuran hubungan (trace flow), dan guided views.*
+1. **Masuk ke Direktori Backend:**
+   ```bash
+   cd backend
+   ```
 
-###  Ringkasan Komponen Utama
-- **Frontend App:** Aplikasi Single Page Application (SPA) berbasis Vite React. Menggunakan Axios client terpusat untuk komunikasi REST API ke backend.
-- **Backend API Server:** Server Node.js Express melayani port `:5000` dengan perlindungan keamanan middleware (Helmet, express-rate-limit, input XSS sanitization) dan otorisasi RBAC (Mahasiswa, Panitia, Admin).
-- **Authentication Service:** Modul otentikasi JWT yang memetakan Access & Refresh Tokens dengan enkripsi password menggunakan `bcryptjs`.
-- **Database Layer:** PostgreSQL di-host secara aman di Supabase Cloud, terhubung langsung via Postgres Client Connection Pool serta API Client SDK.
+2. **Install Dependensi:**
+   ```bash
+   npm install
+   ```
 
-###  Laporan Pengujian Visual & Screenshots
-Hasil pengujian respon visual (*responsiveness*) diagram di berbagai ukuran layar desktop:
+3. **Konfigurasi Environment (`backend/.env`):**
+   Salin file `.env.example` atau buat file `.env` baru di direktori `backend/`:
+   ```env
+   # Server Configuration
+   PORT=5000
+   NODE_ENV=development
+   CORS_ORIGIN=*
 
-| Light Theme Viewport | Dark Theme Viewport |
-| :---: | :---: |
-| ![Light Theme (1440x900)](docs_project/archify-visual-checks/architecture.visual-check.1440x900.light.png) | ![Dark Theme (1440x900)](docs_project/archify-visual-checks/architecture.visual-check.1440x900.dark.png) |
-| ![Light Theme (2048x1320)](docs_project/archify-visual-checks/architecture.visual-check.2048x1320.light.png) | ![Dark Theme (2048x1320)](docs_project/archify-visual-checks/architecture.visual-check.2048x1320.dark.png) |
+   # Supabase Database & Auth Credentials
+   SUPABASE_URL=https://your-supabase-project.supabase.co
+   SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+   DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
+   DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.com:5432/postgres"
 
-*(Detail pengujian visual lengkap dapat diakses pada berkas [Laporan Visual Check](docs_project/archify-visual-checks/architecture.visual-check.html) dan data metrik [visual-check.json](docs_project/archify-visual-checks/architecture.visual-check.json)).*
+   # JWT Secret & Token Expiration Policy
+   JWT_SECRET=your_super_secret_jwt_key_here_generate_with_openssl_rand_hex_64
+   JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_here
+   JWT_EXPIRES_IN=1d
+   JWT_REFRESH_EXPIRES_IN=7d
 
-## Security Testing (Strix AI autonomous pentesting) 
-### Workflow 
-<img width="2143" height="8000" alt="Flowchart" src="https://github.com/user-attachments/assets/7698fa22-459d-4c66-8c4d-5ed350d3ea4d" />
+   # Frontend URL Local
+   FRONTEND_URL=http://localhost:5173/
+   ```
 
----
-##  6. Cara Menjalankan Project (Local Development)
+4. **Jalankan Backend Server:**
+   ```bash
+   npm run dev
+   # Atau run normal:
+   npm start
+   ```
 
-###  Prasyarat Sistem
-- **Node.js**: v18.0.0 atau versi terbaru (direkomendasikan LTS)
-- **npm**: v9.0.0 atau versi terbaru
-- **Git**: v2.x
-
-###  1. Clone Repository
-```bash
-git clone https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1.git
-cd Mentorship-Program-by-Ruang-Belajar-Team-1
-```
-
-### 2. Setup & Jalankan Backend Server
-1. Masuk ke folder backend dan install dependensi:
-```bash
-cd backend
-npm install
-```
-2. Buat file `.env` di folder `backend/` dan isi dengan konfigurasi berikut:
-```env
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-CORS_ORIGIN=*
-
-# Supabase Database & Auth Credentials
-SUPABASE_URL=https://your-supabase-project.supabase.co
-SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
-DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
-DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.com:5432/postgres"
-
-# JWT Secret & Token Expiration Policy
-JWT_SECRET=your_super_secret_jwt_key_here_generate_with_openssl_rand_hex_64
-JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_here
-JWT_EXPIRES_IN=1d
-JWT_REFRESH_EXPIRES_IN=7d
-
-# Frontend URL Local
-FRONTEND_URL=http://localhost:5173/
-```
-3. Jalankan backend server dalam development mode:
-```bash
-npm run dev
-```
-*Server Backend berjalan di:* `http://localhost:5000`
+5. **Jalankan Automated Security & Integration Tests:**
+   ```bash
+   npm test
+   ```
 
 ---
 
-###  3. Setup & Jalankan Frontend App
-1. Buka terminal baru, masuk ke folder frontend dan install dependensi:
-```bash
-cd frontend
-npm install
-```
-2. Buat file `.env` di folder `frontend/` dan isi dengan konfigurasi berikut:
-```env
-# API Base URL for backend endpoint connection
-VITE_API_BASE_URL=http://localhost:5000/api/v1
-```
-3. Jalankan frontend development server:
-```bash
-npm run dev
-```
-*Aplikasi Frontend berjalan di:* `http://localhost:5173`
+## 🏛️ 5. Arsitektur Platform (ARCHITECTURE)
 
-##  7. Tabel Seluruh Anggota Tim 1 (Mentorship Program)
+### 5.1 Diagram Arsitektur Interaktif (HTML)
+Arsitektur lengkap EventHub Kampus digenerate dan diverifikasi menggunakan **Archify CLI**:
+- 🔗 **Diagram HTML Interaktif:** [`docs_project/architecture.html`](docs_project/architecture.html)
 
-| Nama Lengkap | GitHub Username | Role | Kontribusi / Scope Task |
-| --- | --- | --- | --- |
-| **Aditya Beckham** | [`@Adityabeckham`](https://github.com/Adityabeckham) | **Team Lead** | Project Management, Sprint Planning, PRD & Requirements |
-| **Salsa Nur Maulani** | [`@salsanrm`](https://github.com/salsanrm) | **Backend Developer** | Boilerplate Express.js, Schema Migration, RLS, Auth API & Admin API |
-| **Mohdhazril** | [`@mohdhazril6168-design`](https://github.com/mohdhazril6168-design) | **Backend Developer** | Event CRUD API, Rate Limiting, Verification API & Security |
-| **Ahmad Kurnia** | [`@AhmadKurnia13`](https://github.com/AhmadKurnia13) | **Full Stack Developer** | Attendance API, Integration Testing, Code Review & Docs |
-| **Afra Awwalun Naima** | [`@Afrawwalun`](https://github.com/Afrawwalun) | **Frontend Developer** | Boilerplate React + Tailwind, UI Login/Register, Dashboard Admin |
-| **Amirrul Salam** | [`@Amirrul24`](https://github.com/Amirrul24) | **Frontend Developer** | Setup Router & Theme, UI Event Catalog, Form Validation FE |
-| **As'ad Miftahul Haq** | [`@asadmh59`](https://github.com/asadmh59) | **Frontend Developer** | Global State, Axios Interceptors, Dashboard Panitia & Attendance UI |
-| **Zaa (Reza)** | [`@Muhammad-Reza351119`](https://github.com/Muhammad-Reza351119) | **UI/UX Designer** | Wireframe Figma UI Auth, Catalog, Dashboard Panitia & Admin |
-| **Yuda Aditya** | [`@yudaadiitya`](https://github.com/yudaadiitya) | **Delivery Manager at Talentyica** | Mentor |
+### 5.2 Bukti Visual Check Archify (Screenshot Evidence)
+Tersimpan di direktori [`docs_project/archify-visual-checks/`](docs_project/archify-visual-checks/):
+- `screenshot-1024x768.png`
+- `screenshot-1280x800.png`
+- `screenshot-1440x900.png`
+- `screenshot-1920x1080.png`
 
 ---
 
-##  Dokumentasi Terkait
-- 📘 [Product Requirement Document (PRD)](docs_project/EventHub%20Kampus%20-%20PRD.md)
-- 📐 [ERD & API Contract v2 Specification](docs_project/EventHub-Kampus-ERD-API-Contract-v2.md)
-- 📊 [Kanban Task Board & Team Breakdown](docs_project/EventHub-Kampus-Kanban-FULL%20%281%29.md)
-- 🤝 [Panduan Kontribusi (CONTRIBUTING.md)](docs_project/Contributing.md)
+## 📘 6. Ringkasan API Contract v2
+
+Seluruh endpoint backend diproteksi dengan kontrol akses 3-Tier RBAC (`mahasiswa`, `panitia`, `admin`) dan diakses melalui base URL `/api/v1`.
+
+Dokumentasi API Contract v2 lengkap dengan contoh payload request/response dapat dibaca di:
+👉 **[EventHub-Kampus-ERD-API-Contract-v2.md](docs_project/EventHub-Kampus-ERD-API-Contract-v2.md)**
+
+---
+
+## 🛡️ 7. Ringkasan Security Audit & Sign-off (Sprint 6)
+
+Status Audit Keamanan: 🟢 **PASSED & APPROVED FOR DEPLOYMENT**  
+Dokumen Sign-off: 👉 **[Security-Review-Signoff-Sprint-6.md](docs_project/Security-Review-Signoff-Sprint-6.md)**
+
+| Domain Keamanan | Status | Keterangan Verifikasi |
+| :--- | :---: | :--- |
+| **JWT Authentication** | 🟢 PASS | Memverifikasi Bearer Token pada endpoint terproteksi. |
+| **RBAC Authorization** | 🟢 PASS | Membatasi hak akses peranan (`mahasiswa`, `panitia`, `admin`). |
+| **Event State Machine** | 🟢 PASS | Mencegah panitia merubah status event `published` atau melompati verifikasi admin. Terproteksi atomic update predicate. |
+| **Input Sanitization** | 🟢 PASS | Membersihkan tag XSS berbahaya (`<script>`, `onerror`). |
