@@ -5,11 +5,11 @@ const env = require('../src/config/env');
 
 async function testRefreshToken() {
   console.log('==================================================');
-  console.log('🔑 TESTING AUTH REFRESH TOKEN & CREDENTIAL SEPARATION');
+  console.log('🔑 TESTING FRONTEND CONTRACT & REFRESH ROTATION');
   console.log('==================================================');
 
   const accessSecret = env.JWT_SECRET || 'supersecretjwtkey123';
-  const refreshSecret = env.JWT_REFRESH_SECRET || 'supersecretrefreshjwtkey456';
+  const refreshSecret = env.JWT_REFRESH_SECRET || `${accessSecret}_refresh_secure_salt`;
 
   const validAccessToken = jwt.sign(
     { id: 'uuid-test-user-1', role: 'mahasiswa', type: 'access' },
@@ -64,16 +64,23 @@ async function testRefreshToken() {
     .send({ refreshToken: validRefreshToken });
 
   console.log('4. Valid Refresh Response Status:', resValid.status);
-  console.log('4. Received Data Keys:', Object.keys(resValid.body.data || {}));
-  console.log('4. New Access Token Generated:', Boolean(resValid.body.data?.token));
-  console.log('4. New Refresh Token Generated:', Boolean(resValid.body.data?.refreshToken));
+  console.log('4. Top-Level Token Present:', Boolean(resValid.body.token));
+  console.log('4. Top-Level Refresh Token Present:', Boolean(resValid.body.refreshToken));
+  console.log('4. Nested Data Token Present:', Boolean(resValid.body.data?.token));
+  console.log('4. Nested Data Refresh Token Present:', Boolean(resValid.body.data?.refreshToken));
 
   supabase.from = origFrom;
 
-  if (resValid.status === 200 && resValid.body.data?.token && resValid.body.data?.refreshToken) {
-    console.log('\n🎉 REFRESH TOKEN SECURITY & ROTATION AUDIT PASSED 100%!\n');
+  if (
+    resValid.status === 200 &&
+    resValid.body.token &&
+    resValid.body.refreshToken &&
+    resValid.body.data?.token &&
+    resValid.body.data?.refreshToken
+  ) {
+    console.log('\n🎉 FRONTEND CONTRACT & REFRESH TOKEN AUDIT PASSED 100%!\n');
   } else {
-    throw new Error('Refresh token test failed');
+    throw new Error('Frontend contract assertion failed');
   }
 }
 

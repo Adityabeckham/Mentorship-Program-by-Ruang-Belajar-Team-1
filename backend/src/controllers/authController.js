@@ -4,8 +4,12 @@ const supabase = require('../config/supabase');
 const env = require('../config/env');
 const AppError = require('../utils/appError');
 
-const JWT_SECRET = env.JWT_SECRET || process.env.JWT_SECRET || 'supersecretjwtkey123';
-const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET || 'supersecretrefreshjwtkey456';
+const JWT_SECRET = env.JWT_SECRET || process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET =
+  env.JWT_REFRESH_SECRET ||
+  process.env.JWT_REFRESH_SECRET ||
+  (JWT_SECRET ? `${JWT_SECRET}_refresh_secure_salt` : undefined);
+
 const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_EXPIRES_IN = env.JWT_REFRESH_EXPIRES_IN || process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -86,6 +90,10 @@ exports.login = async (req, res, next) => {
       return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
 
+    if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+      return next(new AppError('Konfigurasi JWT server belum lengkap.', 500));
+    }
+
     // Access Token (short-lived)
     const token = jwt.sign(
       { id: user.id, role: user.role, type: 'access' },
@@ -100,6 +108,14 @@ exports.login = async (req, res, next) => {
       { expiresIn: JWT_REFRESH_EXPIRES_IN }
     );
 
+    const userData = {
+      id: user.id,
+      nama: user.nama,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Return both top-level and nested fields for 100% frontend contract compatibility
     res.status(200).json({
       status: 'success',
       statusCode: 200,
@@ -107,11 +123,12 @@ exports.login = async (req, res, next) => {
       token,
       accessToken: token,
       refreshToken,
-      user: {
-        id: user.id,
-        nama: user.nama,
-        email: user.email,
-        role: user.role,
+      user: userData,
+      data: {
+        token,
+        accessToken: token,
+        refreshToken,
+        user: userData,
       },
     });
   } catch (err) {
@@ -158,7 +175,11 @@ exports.refresh = async (req, res, next) => {
       return next(new AppError('Refresh token diperlukan.', 400));
     }
 
-    // STRICT VERIFICATION: Verify ONLY with JWT_REFRESH_SECRET (No fallback to JWT_SECRET to prevent credential confusion)
+    if (!JWT_REFRESH_SECRET || !JWT_SECRET) {
+      return next(new AppError('Konfigurasi JWT server belum lengkap.', 500));
+    }
+
+    // STRICT VERIFICATION: Verify ONLY with JWT_REFRESH_SECRET
     let decoded;
     try {
       decoded = jwt.verify(tokenInput, JWT_REFRESH_SECRET);
@@ -198,20 +219,27 @@ exports.refresh = async (req, res, next) => {
       { expiresIn: JWT_REFRESH_EXPIRES_IN }
     );
 
+    const userData = {
+      id: user.id,
+      nama: user.nama,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Return both top-level and nested fields for 100% frontend contract compatibility
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Token berhasil di-refresh.',
+      token: newAccessToken,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: userData,
       data: {
         token: newAccessToken,
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
-        user: {
-          id: user.id,
-          nama: user.nama,
-          email: user.email,
-          role: user.role,
-        },
+        user: userData,
       },
     });
   } catch (err) {

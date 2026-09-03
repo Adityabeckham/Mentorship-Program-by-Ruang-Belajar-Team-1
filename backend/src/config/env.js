@@ -5,7 +5,11 @@ const PORT = process.env.PORT || 5000;
 
 // JWT Secret & Token Expiration Policy
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'supersecretrefreshjwtkey456';
+// Derive refresh secret dynamically from environment to eliminate source-visible hardcoded fallback credentials
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET ||
+  (process.env.JWT_SECRET ? `${process.env.JWT_SECRET}_refresh_secure_salt` : undefined);
+
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -41,4 +45,4 @@ module.exports = {
   DIRECT_URL,
   FRONTEND_URL,
   CORS_ORIGIN,
-};  
+};
