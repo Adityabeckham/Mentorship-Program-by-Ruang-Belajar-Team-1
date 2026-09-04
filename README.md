@@ -1,4 +1,4 @@
-# 🚀 EventHub Kampus — Platform Terintegrasi Manajemen Event Kampus
+# 🚀 EventHub Kampus — Platform Manajemen Event Kampus
 
 [![Project Status](https://img.shields.io/badge/Project_Status-Sprint_7_Active-brightgreen.svg)](https://github.com/Adityabeckham/Mentorshi-Program-by-Ruang-Belajar-Team-1)
 [![Backend](https://img.shields.io/badge/Backend-Express.js_v5-blue.svg)](https://expressjs.com/)
