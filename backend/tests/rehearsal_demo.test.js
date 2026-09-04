@@ -147,151 +147,125 @@ supabase.from = function (table) {
 
 const app = require('../server');
 
-async function runRehearsalDemo() {
-  console.log('\n================================================================');
-  console.log('🎭 STARTING TASK #66 REHEARSAL DEMO SIMULATION (3-ROLE WORKFLOW)');
-  console.log('================================================================');
-
+describe('Task #66: Rehearsal Demo Simulation (Multi-Role Workflow)', () => {
   const jwtSecret = env.JWT_SECRET || 'supersecretjwtkey123';
 
-  // Generate Tokens for 3 Roles
   const adminToken = jwt.sign({ id: 'uuid-admin-1', role: 'admin', type: 'access' }, jwtSecret, { expiresIn: '1d' });
   const panitiaToken = jwt.sign({ id: 'uuid-panitia-1', role: 'panitia', type: 'access' }, jwtSecret, { expiresIn: '1d' });
   const mahasiswaToken = jwt.sign({ id: 'uuid-mahasiswa-1', role: 'mahasiswa', type: 'access' }, jwtSecret, { expiresIn: '1d' });
 
-  // PHASE 1: PANITIA WORKFLOW
-  console.log('\n🚩 [PHASE 1: PANITIA WORKFLOW]');
-  console.log('1.1 Panitia creating new event (POST /api/v1/events)...');
-  const createRes = await supertest(app)
-    .post('/api/v1/events')
-    .set('Authorization', 'Bearer ' + panitiaToken)
-    .send({
-      title: 'Grand Rehearsal Seminar AI & Robotics 2026',
-      description: 'Simulasi event akbar BEM Fasilkom.',
-      category: 'Teknologi',
-      speaker: 'Prof. Dr. Ir. Agentic AI',
-      location: 'Auditorium Utama Kampus',
-      event_date: '2026-10-25T09:00:00.000Z',
-      quota: 150,
-    });
+  let createdEventId;
+  let registrationId;
 
-  console.log('   - Response Status:', createRes.status);
-  console.log('   - Event ID:', createRes.body.data?.id);
-  console.log('   - Event Status:', createRes.body.data?.status);
-  if (createRes.status !== 201 || createRes.body.data?.status !== 'draft') {
-    console.error('Validation Error Details:', createRes.body);
-    throw new Error('Phase 1.1 Failed: Event creation status must be draft');
-  }
-  const createdEventId = createRes.body.data.id;
-  console.log('   🟢 Phase 1.1 PASSED: Draft Event Created.');
+  test('Phase 1.1: Panitia creates a new draft event', async () => {
+    const res = await supertest(app)
+      .post('/api/v1/events')
+      .set('Authorization', 'Bearer ' + panitiaToken)
+      .send({
+        title: 'Grand Rehearsal Seminar AI & Robotics 2026',
+        description: 'Simulasi event akbar BEM Fasilkom.',
+        category: 'Teknologi',
+        speaker: 'Prof. Dr. Ir. Agentic AI',
+        location: 'Auditorium Utama Kampus',
+        event_date: '2026-10-25T09:00:00.000Z',
+        quota: 150,
+      });
 
-  console.log('\n1.2 Panitia submitting event for Admin verification (PATCH /api/v1/events/' + createdEventId + '/submit)...');
-  const submitRes = await supertest(app)
-    .patch('/api/v1/events/' + createdEventId + '/submit')
-    .set('Authorization', 'Bearer ' + panitiaToken)
-    .send({});
+    expect(res.status).toBe(201);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.id).toBeDefined();
+    expect(res.body.data.status).toBe('draft');
+    expect(res.body.data.title).toBe('Grand Rehearsal Seminar AI & Robotics 2026');
 
-  console.log('   - Response Status:', submitRes.status);
-  console.log('   - Updated Status:', submitRes.body.data?.status);
-  if (submitRes.status !== 200 || submitRes.body.data?.status !== 'pending_verification') {
-    console.error('Submit Error Details:', submitRes.body);
-    throw new Error('Phase 1.2 Failed: Event status must transition to pending_verification');
-  }
-  console.log('   🟢 Phase 1.2 PASSED: Event Submitted for Admin Verification.');
+    createdEventId = res.body.data.id;
+  });
 
-  // PHASE 2: ADMIN WORKFLOW
-  console.log('\n🛡️ [PHASE 2: ADMIN WORKFLOW]');
-  console.log('2.1 Admin reviewing pending verifications (GET /api/v1/admin/events)...');
-  const adminListRes = await supertest(app)
-    .get('/api/v1/admin/events')
-    .set('Authorization', 'Bearer ' + adminToken);
+  test('Phase 1.2: Panitia submits event for Admin verification', async () => {
+    const res = await supertest(app)
+      .patch('/api/v1/events/' + createdEventId + '/submit')
+      .set('Authorization', 'Bearer ' + panitiaToken)
+      .send({});
 
-  console.log('   - Response Status:', adminListRes.status);
-  console.log('   - Pending Count:', adminListRes.body.total || adminListRes.body.data?.length);
-  if (adminListRes.status !== 200) {
-    throw new Error('Phase 2.1 Failed: Unable to fetch admin pending list');
-  }
-  console.log('   🟢 Phase 2.1 PASSED: Pending Events Retrieved.');
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.status).toBe('pending_verification');
+  });
 
-  console.log('\n2.2 Admin approving event (PATCH /api/v1/admin/events/' + createdEventId + '/verify)...');
-  const verifyRes = await supertest(app)
-    .patch('/api/v1/admin/events/' + createdEventId + '/verify')
-    .set('Authorization', 'Bearer ' + adminToken)
-    .send({ action: 'approve' });
+  test('Phase 2.1: Admin reviews pending verifications and finds the submitted event', async () => {
+    const res = await supertest(app)
+      .get('/api/v1/admin/events')
+      .set('Authorization', 'Bearer ' + adminToken);
 
-  console.log('   - Response Status:', verifyRes.status);
-  console.log('   - Verified Status:', verifyRes.body.data?.status);
-  if (verifyRes.status !== 200 || verifyRes.body.data?.status !== 'published') {
-    console.error('Verify Error Details:', verifyRes.body);
-    throw new Error('Phase 2.2 Failed: Event status must transition to published');
-  }
-  console.log('   🟢 Phase 2.2 PASSED: Event Approved & Published.');
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(Array.isArray(res.body.data)).toBe(true);
 
-  // PHASE 3: MAHASISWA WORKFLOW
-  console.log('\n🎓 [PHASE 3: MAHASISWA WORKFLOW]');
-  console.log('3.1 Mahasiswa browsing public catalog (GET /api/v1/events)...');
-  const catalogRes = await supertest(app).get('/api/v1/events');
+    const pendingItem = res.body.data.find((e) => e.id === createdEventId);
+    expect(pendingItem).toBeDefined();
+    expect(pendingItem.status).toBe('pending_verification');
+  });
 
-  console.log('   - Response Status:', catalogRes.status);
-  console.log('   - Total Published Events:', catalogRes.body.total || catalogRes.body.data?.length);
-  if (catalogRes.status !== 200) {
-    throw new Error('Phase 3.1 Failed: Catalog fetch failed');
-  }
-  console.log('   🟢 Phase 3.1 PASSED: Public Catalog Retrieved.');
+  test('Phase 2.2: Admin approves the event transition to published', async () => {
+    const res = await supertest(app)
+      .patch('/api/v1/admin/events/' + createdEventId + '/verify')
+      .set('Authorization', 'Bearer ' + adminToken)
+      .send({ action: 'approve' });
 
-  console.log('\n3.2 Mahasiswa registering for event (POST /api/v1/events/' + createdEventId + '/register)...');
-  const registerRes = await supertest(app)
-    .post('/api/v1/events/' + createdEventId + '/register')
-    .set('Authorization', 'Bearer ' + mahasiswaToken)
-    .send({});
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.status).toBe('published');
+  });
 
-  console.log('   - Response Status:', registerRes.status);
-  console.log('   - Registration ID:', registerRes.body.data?.id);
-  console.log('   - Registration Status:', registerRes.body.data?.status);
-  if (registerRes.status !== 201 || registerRes.body.data?.status !== 'registered') {
-    console.error('Registration Error Details:', registerRes.body);
-    throw new Error('Phase 3.2 Failed: Registration failed');
-  }
-  const registrationId = registerRes.body.data.id;
-  console.log('   🟢 Phase 3.2 PASSED: Mahasiswa Event Registration Success.');
+  test('Phase 3.1: Mahasiswa views public catalog and verifies event presence', async () => {
+    const res = await supertest(app).get('/api/v1/events');
 
-  console.log('\n3.3 Mahasiswa viewing tickets (GET /api/v1/registrations/me)...');
-  const myTicketsRes = await supertest(app)
-    .get('/api/v1/registrations/me')
-    .set('Authorization', 'Bearer ' + mahasiswaToken);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(Array.isArray(res.body.data)).toBe(true);
 
-  console.log('   - Response Status:', myTicketsRes.status);
-  console.log('   - Total Tickets:', myTicketsRes.body.data?.length);
-  if (myTicketsRes.status !== 200) {
-    throw new Error('Phase 3.3 Failed: Ticket retrieval failed');
-  }
-  console.log('   🟢 Phase 3.3 PASSED: Digital Ticket Verified.');
+    const publishedItem = res.body.data.find((e) => e.id === createdEventId);
+    expect(publishedItem).toBeDefined();
+    expect(publishedItem.status).toBe('published');
+  });
 
-  // PHASE 4: PANITIA ATTENDANCE WORKFLOW
-  console.log('\n📝 [PHASE 4: ATTENDANCE WORKFLOW]');
-  console.log('4.1 Panitia marking attendance for registration ' + registrationId + ' (PATCH /api/v1/attendance/' + registrationId + ')...');
-  const attendanceRes = await supertest(app)
-    .patch('/api/v1/attendance/' + registrationId)
-    .set('Authorization', 'Bearer ' + panitiaToken)
-    .send({ is_present: true });
+  test('Phase 3.2: Mahasiswa registers for the published event', async () => {
+    const res = await supertest(app)
+      .post('/api/v1/events/' + createdEventId + '/register')
+      .set('Authorization', 'Bearer ' + mahasiswaToken)
+      .send({});
 
-  console.log('   - Response Status:', attendanceRes.status);
-  console.log('   - Attendance ID:', attendanceRes.body.data?.id);
-  console.log('   - Attendance is_present:', attendanceRes.body.data?.is_present);
-  if (attendanceRes.status !== 200 || attendanceRes.body.data?.is_present !== true) {
-    console.error('Attendance Error Details:', attendanceRes.body);
-    throw new Error('Phase 4.1 Failed: Attendance marking failed');
-  }
-  console.log('   🟢 Phase 4.1 PASSED: Presensi Kehadiran Verified.');
+    expect(res.status).toBe(201);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.id).toBeDefined();
+    expect(res.body.data.status).toBe('registered');
+    expect(res.body.data.event_id).toBe(createdEventId);
 
-  console.log('\n================================================================');
-  console.log('🎉 REHEARSAL DEMO SIMULATION COMPLETED WITH 100% SUCCESS!');
-  console.log('================================================================\n');
+    registrationId = res.body.data.id;
+  });
 
-  process.exit(0);
-}
+  test('Phase 3.3: Mahasiswa views digital tickets and asserts ticket presence', async () => {
+    const res = await supertest(app)
+      .get('/api/v1/registrations/me')
+      .set('Authorization', 'Bearer ' + mahasiswaToken);
 
-runRehearsalDemo().catch((err) => {
-  console.error('Rehearsal Demo Error:', err);
-  process.exit(1);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(Array.isArray(res.body.data)).toBe(true);
+
+    const ticket = res.body.data.find((t) => t.registration_id === registrationId);
+    expect(ticket).toBeDefined();
+    expect(ticket.status).toBe('registered');
+  });
+
+  test('Phase 4.1: Panitia marks attendance for the registered Mahasiswa', async () => {
+    const res = await supertest(app)
+      .patch('/api/v1/attendance/' + registrationId)
+      .set('Authorization', 'Bearer ' + panitiaToken)
+      .send({ is_present: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.registration_id).toBe(registrationId);
+    expect(res.body.data.is_present).toBe(true);
+  });
 });
