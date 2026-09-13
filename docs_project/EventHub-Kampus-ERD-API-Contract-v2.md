@@ -125,7 +125,7 @@
       "email": "budi@student.ac.id",
       "role": "mahasiswa"
     },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+    "token": "your_jwt_token_sample"
   }
 }
 ```
@@ -154,7 +154,7 @@
       "role": "mahasiswa",
       "organization_name": null
     },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+    "token": "your_jwt_token_sample"
   }
 }
 ```
