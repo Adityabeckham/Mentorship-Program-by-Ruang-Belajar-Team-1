@@ -19,17 +19,17 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABA
 const DATABASE_URL = process.env.DATABASE_URL;
 const DIRECT_URL = process.env.DIRECT_URL;
 
-// Frontend URL & CORS Origin
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+// Frontend URL & CORS Origin (Strictly environment-driven without hardcoded source code URLs)
+const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '';
 
 // Validasi Environment Variables Kritis
 if (!JWT_SECRET) {
-  console.error('❌ ERROR: JWT_SECRET tidak ditemukan di .env! Pastikan .env sudah dikonfigurasi.');
+  console.warn('⚠️ WARNING: JWT_SECRET tidak ditemukan di .env!');
 }
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('❌ ERROR: SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di .env!');
+  console.warn('⚠️ WARNING: SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di .env!');
 }
 
 module.exports = {

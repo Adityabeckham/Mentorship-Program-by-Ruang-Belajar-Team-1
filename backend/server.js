@@ -43,15 +43,22 @@ app.use(compression());
 // 3. Security Headers (Helmet)
 app.use(helmet());
 
-// 4. Optimized O(1) CORS Whitelist Set Lookup
-const allowedOriginsList = [
-  env.FRONTEND_URL || process.env.FRONTEND_URL,
-  env.CORS_ORIGIN || process.env.CORS_ORIGIN,
-  'http://localhost:5173',
-  'http://localhost:3000',
-]
-  .filter(Boolean)
-  .map((url) => (url.endsWith('/') ? url.slice(0, -1) : url));
+// 4. Optimized O(1) CORS Whitelist Set Lookup (Environment-Driven, Zero Hardcoded URLs)
+const rawOrigins = [
+  env.FRONTEND_URL,
+  env.CORS_ORIGIN,
+  process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN,
+];
+
+const allowedOriginsList = Array.from(
+  new Set(
+    rawOrigins
+      .flatMap((origin) => (typeof origin === 'string' ? origin.split(',') : origin))
+      .filter(Boolean)
+      .map((url) => url.trim().replace(/\/+$/, ''))
+  )
+);
 
 const allowedOriginsSet = new Set(allowedOriginsList);
 
