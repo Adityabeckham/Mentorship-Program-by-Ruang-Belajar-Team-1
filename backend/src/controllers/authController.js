@@ -5,11 +5,7 @@ const env = require('../config/env');
 const AppError = require('../utils/appError');
 
 const JWT_SECRET = env.JWT_SECRET || process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET =
-  env.JWT_REFRESH_SECRET ||
-  process.env.JWT_REFRESH_SECRET ||
-  (JWT_SECRET ? `${JWT_SECRET}_refresh_secure_salt` : undefined);
-
+const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET;
 const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_EXPIRES_IN = env.JWT_REFRESH_EXPIRES_IN || process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
@@ -99,24 +95,21 @@ exports.login = async (req, res, next) => {
       return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
 
-    if (!JWT_SECRET) {
-      return next(new AppError('Konfigurasi JWT server belum lengkap.', 500));
+    if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+      return next(new AppError('Konfigurasi JWT server belum lengkap di environment variable.', 500));
     }
-
-    const secretKey = JWT_SECRET;
-    const refreshKey = JWT_REFRESH_SECRET || `${secretKey}_refresh_salt`;
 
     // Access Token (short-lived)
     const token = jwt.sign(
       { id: user.id, role: user.role, type: 'access' },
-      secretKey,
+      JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
 
     // Refresh Token (long-lived)
     const refreshToken = jwt.sign(
       { id: user.id, role: user.role, type: 'refresh' },
-      refreshKey,
+      JWT_REFRESH_SECRET,
       { expiresIn: JWT_REFRESH_EXPIRES_IN }
     );
 
