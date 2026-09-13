@@ -10,9 +10,10 @@ const { authorizeRoles } = require('../middlewares/roleMiddleware');
 router.use(authenticateToken, authorizeRoles('admin'));
 
 // Manajemen Panitia
-router.post('/admin/panitia', registerValidation, validate, userController.createPanitia); // Menggunakan registerValidation untuk pembuatan panitia baru
+router.post('/admin/panitia', registerValidation, validate, userController.createPanitia);
 router.get('/admin/panitia', userController.getPanitiaList);
 router.put('/admin/panitia/:id', userController.updatePanitia);
+router.delete('/admin/panitia/:id', userController.deletePanitia);
 
 // Manajemen Seluruh User (Admin Monitoring)
 router.get('/admin/users', userController.getAllUsers);
