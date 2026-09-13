@@ -13,18 +13,30 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const res = await registrationService.getMyRegistrations();
-      const list = (res.data || []).map((r) => ({
-        id: r.id,
-        ticketCode: r.ticket_code || `EHK-${(r.id || '').substring(0, 8).toUpperCase()}`,
-        title: r.events?.title || 'Event Kampus',
-        org: r.events?.users?.organization_name || r.events?.users?.nama || 'Panitia Kampus',
-        date: r.events?.event_date
-          ? new Date(r.events.event_date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-          : '-',
-        location: r.events?.location || '-',
-        status: r.events?.status || 'published',
-        isPresent: r.is_present || false,
-      }));
+      const list = (res.data || []).map((r) => {
+        const rawDate = r.event_date || r.events?.event_date;
+        const formattedDate = rawDate
+          ? new Date(rawDate).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '-';
+
+        return {
+          id: r.registration_id || r.id,
+          eventId: r.event_id || r.events?.id,
+          ticketCode: r.ticket_code || `EHK-${(r.registration_id || r.id || '').substring(0, 8).toUpperCase()}`,
+          title: r.event_title || r.events?.title || 'Event Kampus',
+          org: r.organization_name || r.events?.users?.organization_name || r.events?.users?.nama || 'Panitia Kampus',
+          date: formattedDate,
+          location: r.location || r.events?.location || '-',
+          status: r.status || 'published',
+          isPresent: r.is_present === true,
+        };
+      });
       setRegistrations(list);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal memuat daftar registrasi event.');

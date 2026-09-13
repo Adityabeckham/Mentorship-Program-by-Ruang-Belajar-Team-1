@@ -92,6 +92,7 @@ const registerToEvent = async (req, res, next) => {
 
     const responseData = {
       ...newRegistration,
+      event_id: eventId,
       ticket_code: newRegistration.ticket_code || ticketCode,
       qr_code_url: newRegistration.qr_code_url || qrCodeUrl,
     };
@@ -120,11 +121,13 @@ const getMyRegistrations = async (req, res, next) => {
         ticket_code,
         qr_code_url,
         registered_at,
+        event_id,
         events (
           id,
           title,
           event_date,
-          location
+          location,
+          created_by
         ),
         attendance (
           is_present
@@ -140,11 +143,13 @@ const getMyRegistrations = async (req, res, next) => {
           id,
           status,
           registered_at,
+          event_id,
           events (
             id,
             title,
             event_date,
-            location
+            location,
+            created_by
           ),
           attendance (
             is_present
@@ -159,13 +164,41 @@ const getMyRegistrations = async (req, res, next) => {
 
     if (error) throw error;
 
+    // Fetch creator organization names
+    const creatorIds = Array.from(
+      new Set(
+        (registrations || [])
+          .map((item) => item.events?.created_by)
+          .filter(Boolean)
+      )
+    );
+
+    let orgMap = {};
+    if (creatorIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, nama, organization_name')
+        .in('id', creatorIds);
+
+      if (usersData) {
+        usersData.forEach((u) => {
+          orgMap[u.id] = u.organization_name || u.nama || 'Panitia Kampus';
+        });
+      }
+    }
+
     const formattedData = (registrations || []).map((item) => {
       const generatedTicketCode = item.ticket_code || `EHK-${(item.id || '').substring(0, 8).toUpperCase()}`;
+      const creatorId = item.events?.created_by;
+      const orgName = orgMap[creatorId] || 'Panitia Kampus';
+
       return {
         registration_id: item.id,
+        event_id: item.events?.id || item.event_id,
         event_title: item.events?.title || '-',
         event_date: item.events?.event_date || item.registered_at,
         location: item.events?.location || '-',
+        organization_name: orgName,
         status: item.status,
         is_present: Array.isArray(item.attendance)
           ? item.attendance[0]?.is_present || false

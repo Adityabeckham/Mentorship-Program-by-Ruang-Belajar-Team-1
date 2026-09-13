@@ -24,7 +24,6 @@ exports.getManagedEvents = async (req, res, next) => {
     if (role === 'panitia') {
       query = query.eq('created_by', userId);
     }
-
     let { data: events, error } = await query;
     if (error && isColumnError(error)) {
       let fallbackQuery = supabase
@@ -41,11 +40,33 @@ exports.getManagedEvents = async (req, res, next) => {
 
     if (error) throw error;
 
+    // Calculate real-time participant registration counts for managed events
+    const eventIds = (events || []).map((e) => e.id);
+    let regCounts = {};
+    if (eventIds.length > 0) {
+      const { data: regData } = await supabase
+        .from('registrations')
+        .select('event_id');
+      if (regData) {
+        regData.forEach((r) => {
+          if (r.event_id) {
+            regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+          }
+        });
+      }
+    }
+
+    const eventsWithCounts = (events || []).map((e) => ({
+      ...e,
+      peserta: regCounts[e.id] || 0,
+      registered: regCounts[e.id] || 0,
+    }));
+
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: (events || []).length,
-      data: events || [],
+      total: eventsWithCounts.length,
+      data: eventsWithCounts,
     });
   } catch (err) {
     next(err);
@@ -125,8 +146,29 @@ exports.getPublicEvents = async (req, res, next) => {
     }
 
     if (error) throw error;
-
     const totalItems = count !== null ? count : (events || []).length;
+
+    // Calculate real-time participant registration counts for public events
+    const eventIds = (events || []).map((e) => e.id);
+    let regCounts = {};
+    if (eventIds.length > 0) {
+      const { data: regData } = await supabase
+        .from('registrations')
+        .select('event_id');
+      if (regData) {
+        regData.forEach((r) => {
+          if (r.event_id) {
+            regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+          }
+        });
+      }
+    }
+
+    const eventsWithCounts = (events || []).map((e) => ({
+      ...e,
+      peserta: regCounts[e.id] || 0,
+      registered: regCounts[e.id] || 0,
+    }));
 
     res.status(200).json({
       status: 'success',
@@ -135,7 +177,7 @@ exports.getPublicEvents = async (req, res, next) => {
       page,
       limit,
       totalPages: Math.ceil(totalItems / limit) || 1,
-      data: events || [],
+      data: eventsWithCounts,
     });
   } catch (err) {
     next(err);
