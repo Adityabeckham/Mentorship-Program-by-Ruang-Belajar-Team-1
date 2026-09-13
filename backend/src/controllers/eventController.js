@@ -1,7 +1,5 @@
-const crypto = require('crypto');
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
-const showcaseStore = require('../utils/showcaseStore');
 
 const isColumnError = (err) => err && (err.code === '42703' || (err.message && err.message.includes('does not exist')));
 
@@ -10,39 +8,38 @@ exports.getManagedEvents = async (req, res, next) => {
   try {
     const { id: userId, role } = req.user;
 
-    let events = [];
-    let dbSuccess = false;
+    let query = supabase
+      .from('events')
+      .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_by, created_at')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
 
-    try {
-      let query = supabase
+    if (role === 'panitia') {
+      query = query.eq('created_by', userId);
+    }
+
+    let { data: events, error } = await query;
+    if (error && isColumnError(error)) {
+      let fallbackQuery = supabase
         .from('events')
-        .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_by, created_at')
+        .select('id, title, description, location, event_date, quota, status, created_by, created_at')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
-
       if (role === 'panitia') {
-        query = query.eq('created_by', userId);
+        fallbackQuery = fallbackQuery.eq('created_by', userId);
       }
-
-      const resQuery = await query;
-      if (!resQuery.error && Array.isArray(resQuery.data)) {
-        events = resQuery.data;
-        dbSuccess = true;
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Supabase getManagedEvents fallback engaged.');
+      const resFallback = await fallbackQuery;
+      events = resFallback.data;
+      error = resFallback.error;
     }
 
-    if (!dbSuccess) {
-      const storeEvents = showcaseStore.events.filter((e) => role === 'admin' || e.created_by === userId);
-      events = storeEvents;
-    }
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: events.length,
-      data: events,
+      total: (events || []).length,
+      data: events || [],
     });
   } catch (err) {
     next(err);
@@ -60,26 +57,15 @@ exports.updateEventStatus = async (req, res, next) => {
       return next(new AppError(`Status tidak valid. Gunakan salah satu dari: ${validStatuses.join(', ')}`, 400));
     }
 
-    let updatedEvent = null;
-    try {
-      const { data: dbUp } = await supabase
-        .from('events')
-        .update({ status })
-        .eq('id', id)
-        .is('deleted_at', null)
-        .select('id, title, status, updated_at')
-        .maybeSingle();
-      if (dbUp) updatedEvent = dbUp;
-    } catch (err) {}
+    const { data: updatedEvent, error } = await supabase
+      .from('events')
+      .update({ status })
+      .eq('id', id)
+      .is('deleted_at', null)
+      .select('id, title, status, updated_at')
+      .single();
 
-    if (!updatedEvent) {
-      const demoEvt = showcaseStore.updateEventStatus(id, status);
-      if (demoEvt) {
-        updatedEvent = { id: demoEvt.id, title: demoEvt.title, status: demoEvt.status, updated_at: new Date() };
-      }
-    }
-
-    if (!updatedEvent) {
+    if (error || !updatedEvent) {
       return next(new AppError('Event tidak ditemukan.', 404));
     }
 
@@ -101,44 +87,33 @@ exports.getPublicEvents = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const search = req.query.search || '';
 
-    let events = [];
-    let dbSuccess = false;
+    const offset = (page - 1) * limit;
+    let query = supabase
+      .from('events')
+      .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at', { count: 'exact' })
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .order('event_date', { ascending: true });
 
-    try {
-      const offset = (page - 1) * limit;
-      let query = supabase
-        .from('events')
-        .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at', { count: 'exact' })
-        .eq('status', 'published')
-        .is('deleted_at', null)
-        .order('event_date', { ascending: true });
-
-      if (search) {
-        query = query.or(`title.ilike.%${search}%, category.ilike.%${search}%, location.ilike.%${search}%`);
-      }
-
-      query = query.range(offset, offset + limit - 1);
-      const resQuery = await query;
-      if (!resQuery.error && Array.isArray(resQuery.data)) {
-        events = resQuery.data;
-        dbSuccess = true;
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Supabase events query fallback engaged for showcase demo.');
+    if (search) {
+      query = query.or(`title.ilike.%${search}%, category.ilike.%${search}%, location.ilike.%${search}%`);
     }
 
-    if (!dbSuccess) {
-      events = showcaseStore.events.filter((e) => e.status === 'published');
-    }
+    query = query.range(offset, offset + limit - 1);
+    const { data: events, count, error } = await query;
+
+    if (error) throw error;
+
+    const totalItems = count !== null ? count : (events || []).length;
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: events.length,
+      total: totalItems,
       page,
       limit,
-      totalPages: Math.ceil(events.length / limit) || 1,
-      data: events,
+      totalPages: Math.ceil(totalItems / limit) || 1,
+      data: events || [],
     });
   } catch (err) {
     next(err);
@@ -150,22 +125,27 @@ exports.getPublicEventDetail = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    let event = null;
-    try {
-      const { data: dbEvt } = await supabase
-        .from('events')
-        .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at')
-        .eq('id', id)
-        .is('deleted_at', null)
-        .maybeSingle();
-      if (dbEvt) event = dbEvt;
-    } catch (err) {}
+    let { data: event, error } = await supabase
+      .from('events')
+      .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at')
+      .eq('id', id)
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .single();
 
-    if (!event) {
-      event = showcaseStore.events.find((e) => e.id === id);
+    if (error && isColumnError(error)) {
+      const resFallback = await supabase
+        .from('events')
+        .select('id, title, description, location, event_date, quota, status, created_at')
+        .eq('id', id)
+        .eq('status', 'published')
+        .is('deleted_at', null)
+        .single();
+      event = resFallback.data;
+      error = resFallback.error;
     }
 
-    if (!event) {
+    if (error || !event) {
       return next(new AppError('Event tidak ditemukan atau belum dipublikasikan.', 404));
     }
 
@@ -185,18 +165,50 @@ exports.createEvent = async (req, res, next) => {
     const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
     const panitiaId = req.user.id;
 
-    let newEvent = null;
+    // 1. Cek bentrokan jadwal lokasi & waktu
+    const { data: existingBentrokan } = await supabase
+      .from('events')
+      .select('id, title, location, event_date')
+      .eq('location', location)
+      .eq('event_date', event_date)
+      .is('deleted_at', null)
+      .maybeSingle();
 
-    try {
-      const { data: insertedDbEvent } = await supabase
+    if (existingBentrokan) {
+      return res.status(400).json({
+        status: 'fail',
+        statusCode: 400,
+        message: `Gagal membuat event. Jadwal bentrok dengan event "${existingBentrokan.title}" pada lokasi dan waktu yang sama.`,
+      });
+    }
+
+    // 2. Insert Event baru ke database
+    let { data: newEvent, error } = await supabase
+      .from('events')
+      .insert([
+        {
+          title,
+          description,
+          category: category || 'General',
+          speaker: speaker || 'Panitia EventHub',
+          banner_image,
+          location,
+          event_date,
+          quota: parseInt(quota, 10) || 100,
+          status: 'draft',
+          created_by: panitiaId,
+        },
+      ])
+      .select('id, title, status, created_at')
+      .single();
+
+    if (error && isColumnError(error)) {
+      const resFallback = await supabase
         .from('events')
         .insert([
           {
             title,
             description,
-            category: category || 'General',
-            speaker: speaker || 'Panitia EventHub',
-            banner_image,
             location,
             event_date,
             quota: parseInt(quota, 10) || 100,
@@ -205,44 +217,18 @@ exports.createEvent = async (req, res, next) => {
           },
         ])
         .select('id, title, status, created_at')
-        .maybeSingle();
-
-      if (insertedDbEvent) {
-        newEvent = insertedDbEvent;
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Supabase createEvent fallback engaged for showcase demo.');
+        .single();
+      newEvent = resFallback.data;
+      error = resFallback.error;
     }
 
-    if (!newEvent) {
-      const generatedId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'e1b2c3d4-e5f6-4000-8000-' + Date.now().toString().slice(-12);
-      newEvent = {
-        id: generatedId,
-        title,
-        description,
-        category: category || 'General',
-        speaker: speaker || 'Panitia EventHub',
-        banner_image: banner_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-        location,
-        event_date,
-        quota: parseInt(quota, 10) || 100,
-        status: 'draft',
-        created_by: panitiaId,
-        created_at: new Date().toISOString(),
-      };
-      showcaseStore.addEvent(newEvent);
-    }
+    if (error) throw error;
 
     res.status(201).json({
       status: 'success',
       statusCode: 201,
       message: 'Draft event berhasil dibuat',
-      data: {
-        id: newEvent.id,
-        title: newEvent.title,
-        status: newEvent.status,
-        created_at: newEvent.created_at,
-      },
+      data: newEvent,
     });
   } catch (err) {
     next(err);
@@ -256,42 +242,42 @@ exports.updateEvent = async (req, res, next) => {
     const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
     const panitiaId = req.user.id;
 
-    let updatedEvent = null;
-
-    try {
-      const query = supabase
+    // Check ownership for panitia
+    if (req.user.role === 'panitia') {
+      const selectQuery = supabase
         .from('events')
-        .update({
-          title,
-          description,
-          category,
-          speaker,
-          banner_image,
-          location,
-          event_date,
-          quota,
-          updated_at: new Date(),
-        })
+        .select('id, created_by')
         .eq('id', id)
-        .is('deleted_at', null)
-        .select();
+        .is('deleted_at', null);
 
-      const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
-      if (resQuery && resQuery.data) updatedEvent = resQuery.data;
-    } catch (dbErr) {}
+      const resSelect = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
+      const existingEvt = resSelect?.data;
 
-    if (!updatedEvent) {
-      const demoEvt = showcaseStore.events.find((e) => e.id === id);
-      if (demoEvt) {
-        if (title) demoEvt.title = title;
-        if (description) demoEvt.description = description;
-        if (location) demoEvt.location = location;
-        if (quota) demoEvt.quota = quota;
-        updatedEvent = demoEvt;
+      if (existingEvt && existingEvt.created_by !== panitiaId) {
+        return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk merubah event ini.', 403));
       }
     }
 
-    if (!updatedEvent) {
+    const query = supabase
+      .from('events')
+      .update({
+        title,
+        description,
+        category,
+        speaker,
+        banner_image,
+        location,
+        event_date,
+        quota,
+        updated_at: new Date(),
+      })
+      .eq('id', id)
+      .is('deleted_at', null)
+      .select();
+
+    const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
+
+    if (!resQuery || resQuery.error || !resQuery.data) {
       return next(new AppError('Event tidak ditemukan.', 404));
     }
 
@@ -299,7 +285,7 @@ exports.updateEvent = async (req, res, next) => {
       status: 'success',
       statusCode: 200,
       message: 'Event berhasil diperbarui.',
-      data: updatedEvent,
+      data: resQuery.data,
     });
   } catch (err) {
     next(err);
@@ -312,28 +298,29 @@ exports.deleteEvent = async (req, res, next) => {
     const { id } = req.params;
     const panitiaId = req.user.id;
 
-    let deletedEvent = null;
-    try {
-      const { data: dbDel } = await supabase
-        .from('events')
-        .update({ deleted_at: new Date() })
-        .eq('id', id)
-        .select('id, title, deleted_at')
-        .maybeSingle();
-      if (dbDel) deletedEvent = dbDel;
-    } catch (err) {}
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, created_by')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
 
-    if (!deletedEvent) {
-      const idx = showcaseStore.events.findIndex((e) => e.id === id);
-      if (idx !== -1) {
-        const removed = showcaseStore.events.splice(idx, 1)[0];
-        deletedEvent = { id: removed.id, title: removed.title, deleted_at: new Date() };
-      }
-    }
-
-    if (!deletedEvent) {
+    if (findError || !event) {
       return next(new AppError('Event tidak ditemukan.', 404));
     }
+
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk menghapus event milik panitia lain.', 403));
+    }
+
+    const { data: deletedEvent, error } = await supabase
+      .from('events')
+      .update({ deleted_at: new Date() })
+      .eq('id', id)
+      .select('id, title, deleted_at')
+      .single();
+
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
@@ -352,29 +339,33 @@ exports.getEventParticipants = async (req, res, next) => {
     const eventId = req.params.id;
     const { id: userId, role } = req.user;
 
-    let dbParticipants = [];
-    let dbSuccess = false;
+    if (role !== 'admin') {
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id, created_by')
+        .eq('id', eventId)
+        .single();
 
-    try {
-      const { data: participants, error } = await supabase
-        .from('registrations')
-        .select(`
-          id,
-          status,
-          registered_at,
-          attendance ( id, is_present, checked_at ),
-          users ( id, nama, email )
-        `)
-        .eq('event_id', eventId)
-        .order('registered_at', { ascending: true });
-
-      if (!error && Array.isArray(participants)) {
-        dbParticipants = participants;
-        dbSuccess = true;
+      if (eventError || !event || event.created_by !== userId) {
+        return next(new AppError('Anda tidak memiliki akses ke event ini.', 403));
       }
-    } catch (err) {}
+    }
 
-    let normalized = dbParticipants.map((participant) => ({
+    const { data: participants, error } = await supabase
+      .from('registrations')
+      .select(`
+        id,
+        status,
+        registered_at,
+        attendance ( id, is_present, checked_at ),
+        users ( id, nama, email )
+      `)
+      .eq('event_id', eventId)
+      .order('registered_at', { ascending: true });
+
+    if (error) throw error;
+
+    const normalizedParticipants = (participants || []).map((participant) => ({
       registration_id: participant.id,
       student_name: participant.users?.nama || '-',
       student_email: participant.users?.email || '-',
@@ -384,22 +375,11 @@ exports.getEventParticipants = async (req, res, next) => {
         : participant.attendance?.is_present === true,
     }));
 
-    if (!dbSuccess) {
-      const storeRegs = showcaseStore.registrations.filter((r) => r.event_id === eventId);
-      normalized = storeRegs.map((r) => ({
-        registration_id: r.id,
-        student_name: 'Mahasiswa Tester',
-        student_email: 'mahasiswa@kampus.ac.id',
-        registered_at: r.registered_at,
-        is_present: r.is_present || false,
-      }));
-    }
-
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: normalized.length,
-      data: normalized,
+      total: normalizedParticipants.length,
+      data: normalizedParticipants,
     });
   } catch (err) {
     next(err);
@@ -412,39 +392,46 @@ exports.submitEventForVerification = async (req, res, next) => {
     const { id } = req.params;
     const panitiaId = req.user.id;
 
-    let event = null;
-    try {
-      const { data: dbEvt } = await supabase
-        .from('events')
-        .select('id, title, description, location, event_date, quota, status, created_by')
-        .eq('id', id)
-        .is('deleted_at', null)
-        .maybeSingle();
-      if (dbEvt) event = dbEvt;
-    } catch (dbErr) {}
+    const { data: event, error: findError } = await supabase
+      .from('events')
+      .select('id, title, description, location, event_date, quota, status, created_by')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
 
-    if (!event) {
-      event = showcaseStore.events.find((e) => e.id === id);
-    }
-
-    if (!event) {
+    if (findError || !event) {
       return next(new AppError('Event tidak ditemukan.', 404));
     }
 
-    event.status = 'pending_verification';
+    if (req.user.role === 'panitia' && event.created_by !== panitiaId) {
+      return next(new AppError('Akses ditolak. Anda tidak memiliki izin untuk mengajukan event milik panitia lain.', 403));
+    }
 
-    try {
-      await supabase
-        .from('events')
-        .update({ status: 'pending_verification', updated_at: new Date() })
-        .eq('id', id);
-    } catch (err) {}
+    if (event.status !== 'draft' && event.status !== 'rejected') {
+      return next(new AppError(`Hanya event berstatus 'draft' yang dapat diajukan. Status saat ini: '${event.status}'.`, 400));
+    }
+
+    if (!event.title || !event.description || !event.location || !event.event_date || !event.quota) {
+      return next(new AppError('Gagal mengajukan event. Informasi event belum lengkap.', 400));
+    }
+
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('events')
+      .update({
+        status: 'pending_verification',
+        updated_at: new Date(),
+      })
+      .eq('id', id)
+      .select('id, status')
+      .single();
+
+    if (updateError) throw updateError;
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Event berhasil diajukan untuk diverifikasi oleh admin.',
-      data: { id: event.id, status: event.status },
+      data: updatedEvent,
     });
   } catch (err) {
     next(err);
@@ -455,48 +442,39 @@ exports.submitEventForVerification = async (req, res, next) => {
 exports.getPendingEventsForAdmin = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const targetStatus = status || 'pending_verification';
 
-    let dbEvents = [];
-    let dbSuccess = false;
+    let query = supabase
+      .from('events')
+      .select(`
+        id,
+        title,
+        description,
+        location,
+        event_date,
+        quota,
+        status,
+        rejection_reason,
+        created_at,
+        created_by,
+        users:created_by ( id, nama, email, organization_name )
+      `)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
 
-    try {
-      let query = supabase
-        .from('events')
-        .select(`
-          id,
-          title,
-          description,
-          location,
-          event_date,
-          quota,
-          status,
-          rejection_reason,
-          created_at,
-          created_by,
-          users:created_by ( id, nama, email, organization_name )
-        `)
-        .is('deleted_at', null)
-        .eq('status', targetStatus)
-        .order('created_at', { ascending: false });
-
-      const resQuery = await query;
-      if (!resQuery.error && Array.isArray(resQuery.data)) {
-        dbEvents = resQuery.data;
-        dbSuccess = true;
-      }
-    } catch (err) {}
-
-    let combined = dbEvents;
-    if (!dbSuccess) {
-      combined = showcaseStore.events.filter((e) => e.status === targetStatus);
+    if (status) {
+      query = query.eq('status', status);
+    } else {
+      query = query.eq('status', 'pending_verification');
     }
+
+    const { data: events, error } = await query;
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: combined.length,
-      data: combined,
+      total: (events || []).length,
+      data: events || [],
     });
   } catch (err) {
     next(err);
@@ -513,25 +491,19 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       return next(new AppError("Aksi tidak valid. Nilai 'action' harus berupa 'approve' atau 'reject'.", 400));
     }
 
-    let event = null;
-    try {
-      const selectQuery = supabase
-        .from('events')
-        .select('id, title, status')
-        .eq('id', id)
-        .is('deleted_at', null);
+    const selectQuery = supabase
+      .from('events')
+      .select('id, title, status')
+      .eq('id', id)
+      .is('deleted_at', null);
 
-      const resQuery = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
-      if (resQuery && resQuery.data) event = resQuery.data;
-    } catch (dbErr) {}
+    const resQuery = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
 
-    if (!event) {
-      event = showcaseStore.events.find((e) => e.id === id);
-    }
-
-    if (!event) {
+    if (!resQuery || resQuery.error || !resQuery.data) {
       return next(new AppError('Event tidak ditemukan.', 404));
     }
+
+    const event = resQuery.data;
 
     if (event.status !== 'pending_verification') {
       return next(new AppError("Hanya event berstatus 'pending_verification' yang dapat diverifikasi oleh admin.", 400));
@@ -540,21 +512,31 @@ exports.verifyEventByAdmin = async (req, res, next) => {
     const newStatus = action === 'approve' ? 'published' : 'rejected';
     const reasonToSave = action === 'reject' ? rejection_reason : null;
 
-    event.status = newStatus;
-    if (reasonToSave) event.rejection_reason = reasonToSave;
+    if (action === 'reject' && (!rejection_reason || rejection_reason.trim() === '')) {
+      return next(new AppError("Alasan penolakan ('rejection_reason') wajib diisi jika menolak event.", 400));
+    }
 
-    try {
-      await supabase
-        .from('events')
-        .update({ status: newStatus, rejection_reason: reasonToSave, updated_at: new Date() })
-        .eq('id', id);
-    } catch (err) {}
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('events')
+      .update({
+        status: newStatus,
+        rejection_reason: reasonToSave,
+        updated_at: new Date(),
+      })
+      .eq('id', id)
+      .eq('status', 'pending_verification')
+      .select('id, title, status, rejection_reason, updated_at')
+      .single();
+
+    if (updateError || !updatedEvent) {
+      return next(new AppError("Gagal memverifikasi event. Event mungkin sudah diverifikasi oleh admin lain atau statusnya telah berubah.", 400));
+    }
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: `Event berhasil di-${action === 'approve' ? 'setujui dan dipublikasikan' : 'tolak'}.`,
-      data: { id: event.id, title: event.title, status: event.status, rejection_reason: reasonToSave },
+      data: updatedEvent,
     });
   } catch (err) {
     next(err);

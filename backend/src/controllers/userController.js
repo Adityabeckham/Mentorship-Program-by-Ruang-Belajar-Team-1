@@ -1,8 +1,6 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
-const showcaseStore = require('../utils/showcaseStore');
 
 // 1. POST /admin/panitia (Membuat Akun Panitia Baru)
 exports.createPanitia = async (req, res, next) => {
@@ -13,51 +11,36 @@ exports.createPanitia = async (req, res, next) => {
       return next(new AppError('Nama panitia, email, dan password wajib diisi.', 400));
     }
 
-    let newPanitia = null;
+    const { data: existingUser, error: findErr } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle();
 
-    try {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
+    if (findErr) throw findErr;
 
-      if (existingUser) {
-        return next(new AppError('Email sudah terdaftar.', 400));
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      const { data: insertedDb } = await supabase
-        .from('users')
-        .insert([
-          {
-            nama,
-            email,
-            password: hashedPassword,
-            role: 'panitia',
-            organization_name: organization_name || null,
-          },
-        ])
-        .select('id, nama, email, role, organization_name, created_at')
-        .maybeSingle();
-
-      if (insertedDb) newPanitia = insertedDb;
-    } catch (dbErr) {
-      console.warn('⚠️ Supabase createPanitia fallback engaged.');
+    if (existingUser) {
+      return next(new AppError('Email sudah terdaftar.', 400));
     }
 
-    if (!newPanitia) {
-      newPanitia = {
-        id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'a1b2c3d4-e5f6-4000-8000-' + Date.now().toString().slice(-12),
-        nama,
-        email,
-        role: 'panitia',
-        organization_name: organization_name || 'UKM Kampus',
-        created_at: new Date().toISOString(),
-      };
-    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const { data: newPanitia, error: insertErr } = await supabase
+      .from('users')
+      .insert([
+        {
+          nama,
+          email: email.trim().toLowerCase(),
+          password: hashedPassword,
+          role: 'panitia',
+          organization_name: organization_name || null,
+        },
+      ])
+      .select('id, nama, email, role, organization_name, created_at')
+      .single();
+
+    if (insertErr) throw insertErr;
 
     res.status(201).json({
       status: 'success',
@@ -73,41 +56,19 @@ exports.createPanitia = async (req, res, next) => {
 // 2. GET /admin/panitia (Mendapatkan Daftar Seluruh Panitia Terdaftar)
 exports.getPanitiaList = async (req, res, next) => {
   try {
-    let panitiaList = [];
-    let dbSuccess = false;
+    const { data: panitiaList, error } = await supabase
+      .from('users')
+      .select('id, nama, email, role, organization_name, created_at, updated_at')
+      .eq('role', 'panitia')
+      .order('created_at', { ascending: false });
 
-    try {
-      const { data: dbData, error } = await supabase
-        .from('users')
-        .select('id, nama, email, role, organization_name, created_at, updated_at')
-        .eq('role', 'panitia')
-        .order('created_at', { ascending: false });
-
-      if (!error && Array.isArray(dbData)) {
-        panitiaList = dbData;
-        dbSuccess = true;
-      }
-    } catch (err) {}
-
-    // Only fallback if DB connection failed completely
-    if (!dbSuccess && panitiaList.length === 0) {
-      panitiaList = [
-        {
-          id: 'a1b2c3d4-e5f6-4000-8000-000000000002',
-          nama: 'Panitia EventHub',
-          email: 'panitia@kampus.ac.id',
-          role: 'panitia',
-          organization_name: 'BEM UTama',
-          created_at: new Date().toISOString(),
-        },
-      ];
-    }
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: panitiaList.length,
-      data: panitiaList,
+      total: (panitiaList || []).length,
+      data: panitiaList || [],
     });
   } catch (err) {
     next(err);
@@ -130,36 +91,24 @@ exports.updatePanitia = async (req, res, next) => {
     }
     updatePayload.updated_at = new Date();
 
-    let updatedPanitia = null;
+    const query = supabase
+      .from('users')
+      .update(updatePayload)
+      .eq('id', id)
+      .eq('role', 'panitia')
+      .select('id, nama, email, role, organization_name, updated_at');
 
-    try {
-      const { data: dbUp } = await supabase
-        .from('users')
-        .update(updatePayload)
-        .eq('id', id)
-        .eq('role', 'panitia')
-        .select('id, nama, email, role, organization_name, updated_at')
-        .maybeSingle();
+    const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
 
-      if (dbUp) updatedPanitia = dbUp;
-    } catch (err) {}
-
-    if (!updatedPanitia) {
-      updatedPanitia = {
-        id,
-        nama: nama || 'Panitia EventHub',
-        email: email || 'panitia@kampus.ac.id',
-        role: 'panitia',
-        organization_name: organization_name || 'UKM Kampus',
-        updated_at: new Date(),
-      };
+    if (!resQuery || resQuery.error || !resQuery.data) {
+      return next(new AppError('Akun panitia tidak ditemukan.', 404));
     }
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Data panitia berhasil diperbarui.',
-      data: updatedPanitia,
+      data: resQuery.data,
     });
   } catch (err) {
     next(err);
@@ -171,28 +120,24 @@ exports.deletePanitia = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    let deletedUser = null;
-    try {
-      const { data: dbDel } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', id)
-        .eq('role', 'panitia')
-        .select('id, nama, email')
-        .maybeSingle();
+    const query = supabase
+      .from('users')
+      .delete()
+      .eq('id', id)
+      .eq('role', 'panitia')
+      .select('id, nama, email');
 
-      if (dbDel) deletedUser = dbDel;
-    } catch (err) {}
+    const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
 
-    if (!deletedUser) {
-      deletedUser = { id, nama: 'Panitia User', email: 'panitia@kampus.ac.id' };
+    if (!resQuery || resQuery.error || !resQuery.data) {
+      return next(new AppError('Akun panitia tidak ditemukan.', 404));
     }
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Akun panitia berhasil dihapus dari database.',
-      data: deletedUser,
+      data: resQuery.data,
     });
   } catch (err) {
     next(err);
@@ -204,42 +149,23 @@ exports.getAllUsers = async (req, res, next) => {
   try {
     const { role } = req.query;
 
-    let users = [];
-    let dbSuccess = false;
+    let query = supabase
+      .from('users')
+      .select('id, nama, email, role, organization_name, created_at')
+      .order('created_at', { ascending: false });
 
-    try {
-      let query = supabase
-        .from('users')
-        .select('id, nama, email, role, organization_name, created_at')
-        .order('created_at', { ascending: false });
-
-      if (role) {
-        query = query.eq('role', role);
-      }
-
-      const { data: dbUsers, error } = await query;
-      if (!error && Array.isArray(dbUsers)) {
-        users = dbUsers;
-        dbSuccess = true;
-      }
-    } catch (err) {}
-
-    if (!dbSuccess && users.length === 0) {
-      users = [
-        { id: 'a1b2c3d4-e5f6-4000-8000-000000000001', nama: 'Admin EventHub', email: 'admin@kampus.ac.id', role: 'admin' },
-        { id: 'a1b2c3d4-e5f6-4000-8000-000000000002', nama: 'Panitia EventHub', email: 'panitia@kampus.ac.id', role: 'panitia' },
-        { id: 'a1b2c3d4-e5f6-4000-8000-000000000003', nama: 'Mahasiswa EventHub', email: 'mahasiswa@kampus.ac.id', role: 'mahasiswa' },
-      ];
-      if (role) {
-        users = users.filter((u) => u.role === role);
-      }
+    if (role) {
+      query = query.eq('role', role);
     }
+
+    const { data: users, error } = await query;
+    if (error) throw error;
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: users.length,
-      data: users,
+      total: (users || []).length,
+      data: users || [],
     });
   } catch (err) {
     next(err);

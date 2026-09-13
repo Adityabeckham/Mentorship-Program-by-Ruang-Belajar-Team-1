@@ -13,15 +13,6 @@ const JWT_REFRESH_SECRET =
 const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_EXPIRES_IN = env.JWT_REFRESH_EXPIRES_IN || process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
-// Demo Showcase Preset Accounts (Valid v4 UUIDs to prevent Postgres 22P02 errors)
-const demoAccounts = {
-  'admin@kampus.ac.id': { id: 'a1b2c3d4-e5f6-4000-8000-000000000001', nama: 'Admin EventHub', email: 'admin@kampus.ac.id', role: 'admin' },
-  'panitia@kampus.ac.id': { id: 'a1b2c3d4-e5f6-4000-8000-000000000002', nama: 'Panitia EventHub', email: 'panitia@kampus.ac.id', role: 'panitia' },
-  'mahasiswa@kampus.ac.id': { id: 'a1b2c3d4-e5f6-4000-8000-000000000003', nama: 'Mahasiswa EventHub', email: 'mahasiswa@kampus.ac.id', role: 'mahasiswa' },
-  'demo@kampus.ac.id': { id: 'a1b2c3d4-e5f6-4000-8000-000000000004', nama: 'Demo User', email: 'demo@kampus.ac.id', role: 'mahasiswa' },
-};
-
-
 // 1. POST /api/v1/auth/register
 exports.register = async (req, res, next) => {
   try {
@@ -31,16 +22,18 @@ exports.register = async (req, res, next) => {
       return next(new AppError('Nama, email, dan password wajib diisi', 400));
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
     if (!emailRegex.test(email)) {
       return next(new AppError('Format email tidak valid', 400));
     }
 
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: findErr } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email)
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
+
+    if (findErr) throw findErr;
 
     if (existingUser) {
       return next(new AppError('Email sudah terdaftar', 400));
@@ -49,12 +42,12 @@ exports.register = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error: insertErr } = await supabase
       .from('users')
       .insert([
         {
           nama,
-          email,
+          email: email.trim().toLowerCase(),
           password: hashedPassword,
           role: role && ['mahasiswa', 'panitia', 'admin'].includes(role) ? role : 'mahasiswa',
         },
@@ -62,7 +55,7 @@ exports.register = async (req, res, next) => {
       .select('id, nama, email, role, created_at')
       .single();
 
-    if (error) throw error;
+    if (insertErr) throw insertErr;
 
     res.status(201).json({
       status: 'success',
@@ -86,44 +79,29 @@ exports.login = async (req, res, next) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    let user = null;
-    let dbSuccess = false;
+    // STRICT DATABASE QUERY: Find user in Supabase DB
+    const { data: user, error: findErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
-    // 1. STRICT DATABASE PRIMACY: Query Supabase DB First
-    try {
-      const { data: dbUser, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
-
-      if (!error) {
-        dbSuccess = true;
-        if (dbUser) {
-          const isPasswordValid = await bcrypt.compare(password, dbUser.password);
-          if (isPasswordValid) {
-            user = dbUser;
-          } else {
-            return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
-          }
-        }
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Supabase connection fallback engaged for login.');
-    }
-
-    // 2. Demo Fallback ONLY if user does not exist in DB AND email is preset demo email
-    if (!user && !dbSuccess && demoAccounts[normalizedEmail]) {
-      user = demoAccounts[normalizedEmail];
-    } else if (!user && demoAccounts[normalizedEmail] && password === 'Password123!') {
-      user = demoAccounts[normalizedEmail];
-    }
+    if (findErr) throw findErr;
 
     if (!user) {
       return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
 
-    const secretKey = JWT_SECRET || 'fallback_jwt_secret_key_for_showcase_demo_2026';
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
+    }
+
+    if (!JWT_SECRET) {
+      return next(new AppError('Konfigurasi JWT server belum lengkap.', 500));
+    }
+
+    const secretKey = JWT_SECRET;
     const refreshKey = JWT_REFRESH_SECRET || `${secretKey}_refresh_salt`;
 
     // Access Token (short-lived)
@@ -140,27 +118,24 @@ exports.login = async (req, res, next) => {
       { expiresIn: JWT_REFRESH_EXPIRES_IN }
     );
 
+    const userData = {
+      id: user.id,
+      nama: user.nama,
+      email: user.email,
+      role: user.role,
+    };
+
     res.status(200).json({
       status: 'success',
       statusCode: 200,
       message: 'Login berhasil',
       token,
       refreshToken,
-      user: {
-        id: user.id,
-        nama: user.nama,
-        email: user.email,
-        role: user.role,
-      },
+      user: userData,
       data: {
         token,
         refreshToken,
-        user: {
-          id: user.id,
-          nama: user.nama,
-          email: user.email,
-          role: user.role,
-        },
+        user: userData,
       },
     });
   } catch (err) {
@@ -211,7 +186,6 @@ exports.refresh = async (req, res, next) => {
       return next(new AppError('Konfigurasi JWT server belum lengkap.', 500));
     }
 
-    // STRICT VERIFICATION: Verify ONLY with JWT_REFRESH_SECRET
     let decoded;
     try {
       decoded = jwt.verify(tokenInput, JWT_REFRESH_SECRET);
@@ -219,7 +193,6 @@ exports.refresh = async (req, res, next) => {
       return next(new AppError('Refresh token tidak valid atau telah kedaluwarsa.', 401));
     }
 
-    // Enforce token type check (must be 'refresh' token)
     if (decoded.type !== 'refresh') {
       return next(new AppError('Token yang dikirimkan bukan refresh token.', 401));
     }
@@ -258,7 +231,6 @@ exports.refresh = async (req, res, next) => {
       role: user.role,
     };
 
-    // Return both top-level and nested fields for 100% frontend contract compatibility
     res.status(200).json({
       status: 'success',
       statusCode: 200,
