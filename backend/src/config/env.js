@@ -12,7 +12,7 @@ const JWT_REFRESH_SECRET =
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
-// Supabase Database & Service Credentials
+// Supabase Database & Service Credentials (Clean sanitization)
 const sanitizeKey = (val) => (val ? val.trim().replace(/^["']|["']$/g, '') : undefined);
 const SUPABASE_URL = process.env.SUPABASE_URL
   ? process.env.SUPABASE_URL.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '').replace(/\.cw$/, '.co')
@@ -24,7 +24,7 @@ const SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY || sanitizeK
 const DATABASE_URL = process.env.DATABASE_URL;
 const DIRECT_URL = process.env.DIRECT_URL;
 
-// Frontend URL & CORS Origin
+// Frontend URL & CORS Origin (Safe local defaults in development)
 const defaultLocalFrontend = NODE_ENV !== 'production' ? 'http://localhost:5173' : '';
 const defaultLocalCors = NODE_ENV !== 'production' ? 'http://localhost:5173,http://localhost:3000' : '';
 
@@ -37,7 +37,7 @@ if (!JWT_SECRET) {
 }
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('❌ ERROR: SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di .env!');
+  console.warn('⚠️ WARNING: SUPABASE_URL atau SUPABASE_KEY belum diset di .env!');
 }
 
 module.exports = {
