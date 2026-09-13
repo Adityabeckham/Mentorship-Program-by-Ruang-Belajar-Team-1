@@ -43,7 +43,7 @@ app.use(compression());
 // 3. Security Headers (Helmet)
 app.use(helmet());
 
-// 4. Optimized O(1) CORS Whitelist Set Lookup (Environment-Driven, Zero Hardcoded URLs)
+// 4. Optimized O(1) CORS Whitelist Set Lookup (Environment-Driven, Fail-Closed Security)
 const rawOrigins = [
   env.FRONTEND_URL,
   env.CORS_ORIGIN,
@@ -69,11 +69,8 @@ app.use(
 
       const formattedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
 
-      if (
-        allowedOriginsSet.size === 0 ||
-        allowedOriginsSet.has('*') ||
-        allowedOriginsSet.has(formattedOrigin)
-      ) {
+      // Fail Closed: Strict origin check (never allow all origins if set is empty)
+      if (allowedOriginsSet.has('*') || allowedOriginsSet.has(formattedOrigin)) {
         return callback(null, true);
       }
 
@@ -113,7 +110,8 @@ app.get('/', (req, res) => {
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// 7. Mounting Modules (Base URL: /api/v1)
+// 7. Mounting Modules (Base URL: /api/v1 with direct root alias fallback support)
+// Primary /api/v1 endpoints
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', eventRoutes);
@@ -121,6 +119,15 @@ app.use('/api/v1', registrationRoutes);
 app.use('/api/v1', attendanceRoutes);
 app.use('/api/v1', dashboardRoutes);
 app.use('/api/v1', userRoutes);
+
+// Direct root aliases (Prevents 404 if VITE_API_BASE_URL is set without /api/v1)
+app.use('/health', healthRoutes);
+app.use('/auth', authRoutes);
+app.use('/events', eventRoutes);
+app.use('/registrations', registrationRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/users', userRoutes);
 
 // 8. 404 Route Not Found Fallback
 app.use((req, res, next) => {
