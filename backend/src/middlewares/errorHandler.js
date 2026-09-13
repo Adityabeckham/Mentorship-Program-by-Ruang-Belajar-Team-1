@@ -3,6 +3,11 @@ const errorHandler = (err, req, res, next) => {
   let statusCode = typeof err.statusCode === 'number' ? err.statusCode : 500;
   let message = err.message || 'Internal Server Error';
 
+  // 2. TANGKAP ERROR NETWORK / FETCH / DATABASE POSTGRES & SUPABASE
+  if (err.name === 'TypeError' && err.message && err.message.includes('fetch failed')) {
+    message = 'Koneksi ke Supabase gagal (fetch failed). Pastikan SUPABASE_URL dan SUPABASE_KEY / SUPABASE_SERVICE_ROLE_KEY di Environment Variables Vercel sudah benar dan aktif.';
+  }
+
   // 2. TANGKAP ERROR DATABASE POSTGRES / SUPABASE (Mencegah 500 false-positive)
   if (err.code && typeof err.code === 'string') {
     // 23505: Unique constraint violation (Duplikasi data, misal email/registration ganda)
