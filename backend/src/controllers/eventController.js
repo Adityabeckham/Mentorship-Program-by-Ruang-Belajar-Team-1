@@ -1,7 +1,15 @@
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
 
-const isColumnError = (err) => err && (err.code === '42703' || (err.message && err.message.includes('does not exist')));
+const isColumnError = (err) =>
+  err &&
+  (err.code === '42703' ||
+    err.code === 'PGRST204' ||
+    (err.message &&
+      (err.message.includes('does not exist') ||
+        err.message.includes('Could not find') ||
+        err.message.includes('column of') ||
+        err.message.includes('schema cache'))));
 
 // 1. GET /events/manage (Untuk Panitia & Admin)
 exports.getManagedEvents = async (req, res, next) => {
@@ -11,7 +19,6 @@ exports.getManagedEvents = async (req, res, next) => {
     let query = supabase
       .from('events')
       .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_by, created_at')
-      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (role === 'panitia') {
@@ -23,7 +30,6 @@ exports.getManagedEvents = async (req, res, next) => {
       let fallbackQuery = supabase
         .from('events')
         .select('id, title, description, location, event_date, quota, status, created_by, created_at')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (role === 'panitia') {
         fallbackQuery = fallbackQuery.eq('created_by', userId);
@@ -61,7 +67,6 @@ exports.updateEventStatus = async (req, res, next) => {
       .from('events')
       .update({ status })
       .eq('id', id)
-      .is('deleted_at', null)
       .select('id, title, status, updated_at')
       .single();
 
@@ -92,15 +97,32 @@ exports.getPublicEvents = async (req, res, next) => {
       .from('events')
       .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at', { count: 'exact' })
       .eq('status', 'published')
-      .is('deleted_at', null)
       .order('event_date', { ascending: true });
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%, category.ilike.%${search}%, location.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%, location.ilike.%${search}%`);
     }
 
     query = query.range(offset, offset + limit - 1);
-    const { data: events, count, error } = await query;
+    let { data: events, count, error } = await query;
+
+    if (error && isColumnError(error)) {
+      let fallbackQuery = supabase
+        .from('events')
+        .select('id, title, description, location, event_date, quota, status, created_at', { count: 'exact' })
+        .eq('status', 'published')
+        .order('event_date', { ascending: true });
+
+      if (search) {
+        fallbackQuery = fallbackQuery.or(`title.ilike.%${search}%, location.ilike.%${search}%`);
+      }
+
+      fallbackQuery = fallbackQuery.range(offset, offset + limit - 1);
+      const resFallback = await fallbackQuery;
+      events = resFallback.data;
+      count = resFallback.count;
+      error = resFallback.error;
+    }
 
     if (error) throw error;
 
@@ -130,7 +152,6 @@ exports.getPublicEventDetail = async (req, res, next) => {
       .select('id, title, description, category, speaker, banner_image, location, event_date, quota, status, created_at')
       .eq('id', id)
       .eq('status', 'published')
-      .is('deleted_at', null)
       .single();
 
     if (error && isColumnError(error)) {
@@ -139,7 +160,6 @@ exports.getPublicEventDetail = async (req, res, next) => {
         .select('id, title, description, location, event_date, quota, status, created_at')
         .eq('id', id)
         .eq('status', 'published')
-        .is('deleted_at', null)
         .single();
       event = resFallback.data;
       error = resFallback.error;
@@ -159,7 +179,7 @@ exports.getPublicEventDetail = async (req, res, next) => {
   }
 };
 
-// 5. POST /panitia/events (Buat Event)
+// 5. POST /events (Buat Event Baru)
 exports.createEvent = async (req, res, next) => {
   try {
     const { title, description, category, speaker, banner_image, location, event_date, quota } = req.body;
@@ -171,7 +191,6 @@ exports.createEvent = async (req, res, next) => {
       .select('id, title, location, event_date')
       .eq('location', location)
       .eq('event_date', event_date)
-      .is('deleted_at', null)
       .maybeSingle();
 
     if (existingBentrokan) {
@@ -182,40 +201,40 @@ exports.createEvent = async (req, res, next) => {
       });
     }
 
-    // 2. Insert Event baru ke database
+    // 2. Format payload utama & fallback payload
+    const fullPayload = {
+      title,
+      description,
+      location,
+      event_date,
+      quota: parseInt(quota, 10) || 100,
+      status: 'draft',
+      created_by: panitiaId,
+    };
+    if (category) fullPayload.category = category;
+    if (speaker) fullPayload.speaker = speaker;
+    if (banner_image) fullPayload.banner_image = banner_image;
+
     let { data: newEvent, error } = await supabase
       .from('events')
-      .insert([
-        {
-          title,
-          description,
-          category: category || 'General',
-          speaker: speaker || 'Panitia EventHub',
-          banner_image,
-          location,
-          event_date,
-          quota: parseInt(quota, 10) || 100,
-          status: 'draft',
-          created_by: panitiaId,
-        },
-      ])
+      .insert([fullPayload])
       .select('id, title, status, created_at')
       .single();
 
     if (error && isColumnError(error)) {
+      const corePayload = {
+        title,
+        description,
+        location,
+        event_date,
+        quota: parseInt(quota, 10) || 100,
+        status: 'draft',
+        created_by: panitiaId,
+      };
+
       const resFallback = await supabase
         .from('events')
-        .insert([
-          {
-            title,
-            description,
-            location,
-            event_date,
-            quota: parseInt(quota, 10) || 100,
-            status: 'draft',
-            created_by: panitiaId,
-          },
-        ])
+        .insert([corePayload])
         .select('id, title, status, created_at')
         .single();
       newEvent = resFallback.data;
@@ -247,8 +266,7 @@ exports.updateEvent = async (req, res, next) => {
       const selectQuery = supabase
         .from('events')
         .select('id, created_by')
-        .eq('id', id)
-        .is('deleted_at', null);
+        .eq('id', id);
 
       const resSelect = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
       const existingEvt = resSelect?.data;
@@ -258,26 +276,47 @@ exports.updateEvent = async (req, res, next) => {
       }
     }
 
-    const query = supabase
+    const fullPayload = {
+      title,
+      description,
+      location,
+      event_date,
+      quota,
+      updated_at: new Date(),
+    };
+    if (category) fullPayload.category = category;
+    if (speaker) fullPayload.speaker = speaker;
+    if (banner_image) fullPayload.banner_image = banner_image;
+
+    let { data: updatedEvent, error } = await supabase
       .from('events')
-      .update({
+      .update(fullPayload)
+      .eq('id', id)
+      .select('id, title, status, updated_at')
+      .single();
+
+    if (error && isColumnError(error)) {
+      const corePayload = {
         title,
         description,
-        category,
-        speaker,
-        banner_image,
         location,
         event_date,
         quota,
         updated_at: new Date(),
-      })
-      .eq('id', id)
-      .is('deleted_at', null)
-      .select();
+      };
 
-    const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
+      const resFallback = await supabase
+        .from('events')
+        .update(corePayload)
+        .eq('id', id)
+        .select('id, title, status, updated_at')
+        .single();
 
-    if (!resQuery || resQuery.error || !resQuery.data) {
+      updatedEvent = resFallback.data;
+      error = resFallback.error;
+    }
+
+    if (error || !updatedEvent) {
       return next(new AppError('Event tidak ditemukan.', 404));
     }
 
@@ -285,14 +324,14 @@ exports.updateEvent = async (req, res, next) => {
       status: 'success',
       statusCode: 200,
       message: 'Event berhasil diperbarui.',
-      data: resQuery.data,
+      data: updatedEvent,
     });
   } catch (err) {
     next(err);
   }
 };
 
-// 7. DELETE /panitia/events/:id (Soft Delete Event)
+// 7. DELETE /events/:id (Hapus Event)
 exports.deleteEvent = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -302,7 +341,6 @@ exports.deleteEvent = async (req, res, next) => {
       .from('events')
       .select('id, created_by')
       .eq('id', id)
-      .is('deleted_at', null)
       .single();
 
     if (findError || !event) {
@@ -315,9 +353,9 @@ exports.deleteEvent = async (req, res, next) => {
 
     const { data: deletedEvent, error } = await supabase
       .from('events')
-      .update({ deleted_at: new Date() })
+      .delete()
       .eq('id', id)
-      .select('id, title, deleted_at')
+      .select('id, title')
       .single();
 
     if (error) throw error;
@@ -325,7 +363,7 @@ exports.deleteEvent = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      message: 'Event berhasil dihapus (soft delete).',
+      message: 'Event berhasil dihapus.',
       data: deletedEvent,
     });
   } catch (err) {
@@ -333,7 +371,7 @@ exports.deleteEvent = async (req, res, next) => {
   }
 };
 
-// 8. GET /events/:id/participants (Untuk Panitia)
+// 8. GET /events/:id/participants (Untuk Panitia & Admin)
 exports.getEventParticipants = async (req, res, next) => {
   try {
     const eventId = req.params.id;
@@ -386,7 +424,7 @@ exports.getEventParticipants = async (req, res, next) => {
   }
 };
 
-// 9. PATCH /panitia/events/:id/submit
+// 9. PATCH /events/:id/submit (Khusus Panitia)
 exports.submitEventForVerification = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -396,7 +434,6 @@ exports.submitEventForVerification = async (req, res, next) => {
       .from('events')
       .select('id, title, description, location, event_date, quota, status, created_by')
       .eq('id', id)
-      .is('deleted_at', null)
       .single();
 
     if (findError || !event) {
@@ -458,7 +495,6 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
         created_by,
         users:created_by ( id, nama, email, organization_name )
       `)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (status) {
@@ -485,17 +521,18 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
 exports.verifyEventByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { action, rejection_reason } = req.body;
+    const { action, rejection_reason, status } = req.body;
 
-    if (!action || !['approve', 'reject'].includes(action)) {
-      return next(new AppError("Aksi tidak valid. Nilai 'action' harus berupa 'approve' atau 'reject'.", 400));
+    const targetStatus = status || (action === 'approve' ? 'published' : action === 'reject' ? 'rejected' : null);
+
+    if (!targetStatus || !['published', 'rejected'].includes(targetStatus)) {
+      return next(new AppError("Aksi/status tidak valid. Nilai harus berupa 'approve'/'published' atau 'reject'/'rejected'.", 400));
     }
 
     const selectQuery = supabase
       .from('events')
       .select('id, title, status')
-      .eq('id', id)
-      .is('deleted_at', null);
+      .eq('id', id);
 
     const resQuery = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
 
@@ -509,17 +546,16 @@ exports.verifyEventByAdmin = async (req, res, next) => {
       return next(new AppError("Hanya event berstatus 'pending_verification' yang dapat diverifikasi oleh admin.", 400));
     }
 
-    const newStatus = action === 'approve' ? 'published' : 'rejected';
-    const reasonToSave = action === 'reject' ? rejection_reason : null;
+    const reasonToSave = targetStatus === 'rejected' ? rejection_reason : null;
 
-    if (action === 'reject' && (!rejection_reason || rejection_reason.trim() === '')) {
+    if (targetStatus === 'rejected' && (!rejection_reason || rejection_reason.trim() === '')) {
       return next(new AppError("Alasan penolakan ('rejection_reason') wajib diisi jika menolak event.", 400));
     }
 
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
       .update({
-        status: newStatus,
+        status: targetStatus,
         rejection_reason: reasonToSave,
         updated_at: new Date(),
       })
@@ -535,7 +571,7 @@ exports.verifyEventByAdmin = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      message: `Event berhasil di-${action === 'approve' ? 'setujui dan dipublikasikan' : 'tolak'}.`,
+      message: `Event berhasil di-${targetStatus === 'published' ? 'setujui dan dipublikasikan' : 'tolak'}.`,
       data: updatedEvent,
     });
   } catch (err) {
