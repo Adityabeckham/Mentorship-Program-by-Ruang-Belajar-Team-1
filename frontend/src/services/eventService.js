@@ -33,6 +33,11 @@ export const eventService = {
     return response.data;
   },
 
+  submitEventForVerification: async (id) => {
+    const response = await apiService.patch('/events/' + id + '/submit');
+    return response.data;
+  },
+
   createEvent: async (payload) => {
     const response = await apiService.post('/events', payload);
     return response.data;

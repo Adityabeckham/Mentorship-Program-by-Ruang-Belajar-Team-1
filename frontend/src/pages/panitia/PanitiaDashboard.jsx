@@ -9,7 +9,11 @@ const eventSchema = yup.object().shape({
   title: yup.string().required('Judul event wajib diisi.'),
   category: yup.string().required('Kategori wajib diisi.'),
   speaker: yup.string().required('Narasumber wajib diisi.'),
-  quota: yup.number().typeError('Kuota harus berupa angka.').min(1, 'Minimal kuota 1.').required('Kuota wajib diisi.'),
+  quota: yup
+    .number()
+    .typeError('Kuota harus berupa angka.')
+    .min(1, 'Minimal kuota 1.')
+    .required('Kuota wajib diisi.'),
   location: yup.string().required('Lokasi wajib diisi.'),
   date: yup.date().typeError('Tanggal tidak valid.').required('Tanggal wajib diisi.'),
   time: yup.string().required('Waktu wajib diisi.'),
@@ -20,7 +24,13 @@ const formatEventDate = (eventDate) => {
   const parsed = new Date(eventDate);
   return Number.isNaN(parsed.getTime())
     ? '-'
-    : parsed.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    : parsed.toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 };
 
 const normalizeEvent = (event) => ({
@@ -32,6 +42,7 @@ const normalizeEvent = (event) => ({
 
 const PanitiaDashboard = () => {
   const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
 
@@ -45,6 +56,9 @@ const PanitiaDashboard = () => {
   const [time, setTime] = useState('');
   const [desc, setDesc] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [submittingForm, setSubmittingForm] = useState(false);
+
+  // Attendance & Participants States
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [attendanceFilter, setAttendanceFilter] = useState('all');
@@ -52,28 +66,48 @@ const PanitiaDashboard = () => {
   const [updatingAttendanceId, setUpdatingAttendanceId] = useState(null);
   const participantRequestRef = useRef(0);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    eventService.getManagedEvents()
-      .then((response) => {
-        if (isMounted) setEvents((response.data || []).map(normalizeEvent));
-      })
-      .catch((error) => {
-        if (isMounted) toast.error(error.response?.data?.message || 'Event gagal dimuat.');
-      });
-
-    return () => {
-      isMounted = false;
-    };
+  const fetchManagedEvents = useCallback(async () => {
+    setLoadingEvents(true);
+    try {
+      const response = await eventService.getManagedEvents();
+      setEvents((response.data || []).map(normalizeEvent));
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Event gagal dimuat.');
+    } finally {
+      setLoadingEvents(false);
+    }
   }, []);
 
-  const stats = useMemo(() => [
-    { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
-    { num: String(events.filter(e => e.status === 'pending_verification').length), lbl: 'Pending Verifikasi', accent: 'amber' },
-    { num: String(events.filter(e => e.status === 'published').length), lbl: 'Event Published', accent: 'mint' },
-    { num: String(events.filter(e => e.status === 'rejected').length), lbl: 'Event Ditolak', accent: 'coral' },
-  ], [events]);
+  useEffect(() => {
+    fetchManagedEvents();
+  }, [fetchManagedEvents]);
+
+  const stats = useMemo(
+    () => [
+      { num: String(events.length), lbl: 'Total Event Dibuat', accent: 'navy' },
+      {
+        num: String(events.filter((e) => e.status === 'draft').length),
+        lbl: 'Draft (Belum Diajukan)',
+        accent: 'purple',
+      },
+      {
+        num: String(events.filter((e) => e.status === 'pending_verification').length),
+        lbl: 'Pending Verifikasi',
+        accent: 'amber',
+      },
+      {
+        num: String(events.filter((e) => e.status === 'published').length),
+        lbl: 'Event Published',
+        accent: 'mint',
+      },
+      {
+        num: String(events.filter((e) => e.status === 'rejected').length),
+        lbl: 'Event Ditolak',
+        accent: 'coral',
+      },
+    ],
+    [events]
+  );
 
   const resetForm = useCallback(() => {
     setTitle('');
@@ -89,60 +123,91 @@ const PanitiaDashboard = () => {
   }, []);
 
   const closeForm = useCallback(() => {
+    resetForm();
     setShowCreateModal(false);
-    resetForm();
   }, [resetForm]);
 
-  const openCreateModal = useCallback(() => {
-    resetForm();
-    setShowCreateModal(true);
-  }, [resetForm]);
+  const handleSubmitEvent = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setFieldErrors({});
 
-  const handleSubmitEvent = useCallback(async (e) => {
-    e.preventDefault();
-    setFieldErrors({});
+      try {
+        await eventSchema.validate(
+          { title, category, speaker, quota, location, date, time, desc },
+          { abortEarly: false }
+        );
+      } catch (err) {
+        if (err instanceof yup.ValidationError) {
+          const errors = {};
+          err.inner.forEach((e) => {
+            errors[e.path] = e.message;
+          });
+          setFieldErrors(errors);
+          toast.error('Periksa kembali isian formulir Anda.');
+          return;
+        }
+      }
 
-    try {
-      await eventSchema.validate(
-        { title, category, speaker, quota, location, date, time, desc },
-        { abortEarly: false }
-      );
-    } catch (err) {
-      if (err instanceof yup.ValidationError) {
-        const errors = {};
-        err.inner.forEach((e) => {
-          errors[e.path] = e.message;
-        });
-        setFieldErrors(errors);
-        toast.error('Periksa kembali isian formulir Anda.');
+      const payload = {
+        title: DOMPurify.sanitize(title),
+        description: DOMPurify.sanitize(desc),
+        location: DOMPurify.sanitize(location),
+        event_date: new Date(`${date}T${time}:00`).toISOString(),
+        quota: Number(quota),
+        category,
+        speaker: DOMPurify.sanitize(speaker),
+      };
+
+      setSubmittingForm(true);
+      try {
+        if (editingEventId) {
+          await eventService.updateEvent(editingEventId, payload);
+          toast.success('Event berhasil diperbarui.');
+        } else {
+          await eventService.createEvent(payload);
+          toast.success('Draft event berhasil dibuat! Klik "Ajukan Verifikasi" agar ditinjau Admin.');
+        }
+        closeForm();
+        fetchManagedEvents();
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Event gagal disimpan. Coba lagi.');
+      } finally {
+        setSubmittingForm(false);
+      }
+    },
+    [title, category, speaker, quota, location, date, time, desc, editingEventId, closeForm, fetchManagedEvents]
+  );
+
+  const handleSubmitForVerification = useCallback(
+    async (id, eventTitle) => {
+      if (!window.confirm(`Apakah Anda yakin ingin mengajukan event '${eventTitle}' ke Admin Platform untuk diverifikasi?`)) {
         return;
       }
-    }
+      try {
+        await eventService.submitEventForVerification(id);
+        toast.success(`Event '${eventTitle}' berhasil diajukan untuk verifikasi Admin!`);
+        fetchManagedEvents();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal mengajukan verifikasi event.');
+      }
+    },
+    [fetchManagedEvents]
+  );
 
-    const payload = {
-      title: DOMPurify.sanitize(title),
-      description: DOMPurify.sanitize(desc),
-      location: DOMPurify.sanitize(location),
-      event_date: new Date(`${date}T${time}:00`).toISOString(),
-      quota: Number(quota),
-      category,
-      speaker: DOMPurify.sanitize(speaker),
-    };
-
-    try {
-      const response = editingEventId
-        ? await eventService.updateEvent(editingEventId, payload)
-        : await eventService.createEvent(payload);
-      const savedEvent = response?.data || response;
-      setEvents((previousEvents) => editingEventId
-        ? previousEvents.map((event) => event.id === editingEventId ? normalizeEvent({ ...event, ...savedEvent }) : event)
-        : [normalizeEvent({ ...savedEvent, peserta: 0, quota: Number(quota) }), ...previousEvents]);
-      toast.success(editingEventId ? 'Event berhasil diperbarui.' : 'Draft event berhasil dibuat.');
-      closeForm();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Event gagal disimpan. Coba lagi.');
-    }
-  }, [title, category, speaker, quota, location, date, time, desc, editingEventId, closeForm]);
+  const handleDeleteEvent = useCallback(
+    async (id, eventTitle) => {
+      if (!window.confirm(`Apakah Anda yakin ingin menghapus event '${eventTitle}'?`)) return;
+      try {
+        await eventService.deleteEvent(id);
+        toast.success(`Event '${eventTitle}' berhasil dihapus.`);
+        fetchManagedEvents();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menghapus event.');
+      }
+    },
+    [fetchManagedEvents]
+  );
 
   const handleEditEvent = useCallback((event) => {
     setEditingEventId(event.id);
@@ -187,9 +252,13 @@ const PanitiaDashboard = () => {
     setUpdatingAttendanceId(participant.registration_id);
     try {
       const response = await attendanceService.markAttendance(participant.registration_id, isPresent);
-      setParticipants((current) => current.map((item) => item.registration_id === participant.registration_id
-        ? { ...item, is_present: response.data.is_present }
-        : item));
+      setParticipants((current) =>
+        current.map((item) =>
+          item.registration_id === participant.registration_id
+            ? { ...item, is_present: response.data.is_present }
+            : item
+        )
+      );
       toast.success(isPresent ? 'Peserta ditandai hadir.' : 'Status kehadiran dibatalkan.');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Status kehadiran gagal diperbarui.');
@@ -207,37 +276,46 @@ const PanitiaDashboard = () => {
     });
   }, [participants, attendanceFilter]);
 
-  const selectedEvent = useMemo(() => events.find((event) => event.id === selectedEventId), [events, selectedEventId]);
+  const selectedEvent = useMemo(
+    () => events.find((item) => item.id === selectedEventId),
+    [events, selectedEventId]
+  );
 
   return (
     <div className="page-fade">
-      {/* Title Header */}
+      {/* Title */}
       <div className="section-title">
-        <span className="eyebrow">Dashboard Panitia Penyelenggara</span>
-        <h2 style={{ color: '#fff' }}>Kelola Event Organisasi Saya</h2>
+        <span className="eyebrow">Dashboard Organisasi Kampus</span>
+        <h2 style={{ color: '#fff' }}>Manajemen Event &amp; Pengajuan Verifikasi</h2>
       </div>
 
-      {/* Stats Cards */}
-      <div className="stat-grid">
-        {stats.map((s, i) => (
-          <div key={i} className={`stat-card ${s.accent}`}>
+      {/* Summary Cards */}
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+        {stats.map((s) => (
+          <div key={s.lbl} className={`stat-card ${s.accent}`}>
             <div className="num">{s.num}</div>
             <div className="lbl">{s.lbl}</div>
           </div>
         ))}
       </div>
 
-      {/* Main Table Card */}
+      {/* Events Table Card */}
       <div className="card">
-        <div className="toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="toolbar">
           <div>
-            <h3 style={{ fontSize: '19px', margin: 0 }}>Ringkasan Event Milik Organisasi Saya</h3>
+            <h3 style={{ fontSize: '19px', margin: 0 }}>Kelola Event Organisasi Saya</h3>
             <p style={{ fontSize: '12.5px', color: '#8a7355', margin: '2px 0 0' }}>
-              Seluruh pengajuan event yang telah atau sedang diproses oleh Admin Platform.
+              Buat draft event, ajukan ke Admin Kampus, dan pantau status persetujuan.
             </p>
           </div>
-          <button className="btn btn-primary" onClick={openCreateModal}>
-            + Buat Draft Event Baru
+          <button
+            className="btn btn-navy"
+            onClick={() => {
+              resetForm();
+              setShowCreateModal(true);
+            }}
+          >
+            + Buat Event Baru
           </button>
         </div>
 
@@ -249,58 +327,107 @@ const PanitiaDashboard = () => {
                 <th>Kategori</th>
                 <th>Tanggal Pelaksanaan</th>
                 <th>Status Verifikasi Admin</th>
-                <th>Peserta Terdaftar / Kuota</th>
+                <th>Peserta / Kuota</th>
                 <th style={{ textAlign: 'right' }}>Aksi Panitia</th>
               </tr>
             </thead>
             <tbody>
-              {events.map((ev) => (
-                <tr key={ev.id}>
-                  <td><strong>{ev.title}</strong></td>
-                  <td><span className="cat-badge" style={{ margin: 0 }}>{ev.category}</span></td>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11.5px' }}>{ev.date}</td>
-                  <td>
-                    <span className={`badge ${ev.status}`}>
-                      {ev.status === 'published' ? '✅ Published' : ev.status === 'pending_verification' ? '⏳ Pending Review' : '❌ Rejected'}
-                    </span>
-                  </td>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '12.5px' }}>
-                    {ev.peserta} / {ev.quota} Peserta
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                      <button className="btn btn-navy btn-sm" onClick={() => handleViewParticipants(ev.id)}>
-                        👥 Absensi
-                      </button>
-                      <button className="btn btn-outline dark btn-sm" onClick={() => handleEditEvent(ev)}>
-                        ✏️ Edit
-                      </button>
-                      <button
-                        className="btn btn-outline dark btn-sm"
-                        onClick={() => toast.info(`Detail event '${ev.title}' dalam pratinjau panitia.`)}
-                      >
-                        👁️ Pratinjau
-                      </button>
+              {loadingEvents ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Memuat daftar event milik panitia...
                   </td>
                 </tr>
-              ))}
+              ) : events.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Anda belum membuat event apapun. Klik tombol "+ Buat Event Baru" di atas.
+                  </td>
+                </tr>
+              ) : (
+                events.map((ev) => (
+                  <tr key={ev.id}>
+                    <td>
+                      <strong>{ev.title}</strong>
+                      {ev.status === 'rejected' && ev.rejection_reason && (
+                        <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>
+                          ⚠️ <strong>Alasan Penolakan:</strong> {ev.rejection_reason}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span className="cat-badge" style={{ margin: 0 }}>{ev.category}</span>
+                    </td>
+                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11.5px' }}>{ev.date}</td>
+                    <td>
+                      <span className={`badge ${ev.status}`}>
+                        {ev.status === 'published'
+                          ? '✅ Published'
+                          : ev.status === 'pending_verification'
+                          ? '⏳ Menunggu Review'
+                          : ev.status === 'draft'
+                          ? '📝 Draft'
+                          : '❌ Ditolak'}
+                      </span>
+                    </td>
+                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '12.5px' }}>
+                      {ev.peserta} / {ev.quota} Peserta
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {(ev.status === 'draft' || ev.status === 'rejected') && (
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleSubmitForVerification(ev.id, ev.title)}
+                            title="Ajukan event ini ke Admin Platform untuk diverifikasi"
+                          >
+                            🚀 Ajukan Verifikasi
+                          </button>
+                        )}
+                        {ev.status === 'published' && (
+                          <button
+                            className="btn btn-navy btn-sm"
+                            onClick={() => handleViewParticipants(ev.id)}
+                          >
+                            👥 Absensi
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-outline dark btn-sm"
+                          onClick={() => handleEditEvent(ev)}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Participants Attendance Card */}
       {selectedEventId && (
         <div className="card attendance-card">
           <div className="toolbar">
             <div>
-              <span className="eyebrow" style={{ color: '#8a7355' }}>Daftar Kehadiran</span>
+              <span className="eyebrow" style={{ color: '#8a7355' }}>Daftar Kehadiran Peserta</span>
               <h3>{selectedEvent?.title || 'Peserta Event'}</h3>
               <p style={{ fontSize: '12.5px', color: '#8a7355', margin: 0 }}>
-                Tandai kehadiran peserta secara langsung.
+                Tandai presensi mahasiswa yang hadir di lokasi event.
               </p>
             </div>
             <label className="attendance-filter">
-              <span>Filter status</span>
-              <select value={attendanceFilter} onChange={(event) => setAttendanceFilter(event.target.value)}>
+              <span>Filter status: </span>
+              <select value={attendanceFilter} onChange={(e) => setAttendanceFilter(e.target.value)}>
                 <option value="all">Semua peserta</option>
                 <option value="present">Hadir</option>
                 <option value="absent">Belum Hadir</option>
@@ -308,34 +435,57 @@ const PanitiaDashboard = () => {
             </label>
           </div>
 
-          {loadingParticipants ? <p>Memuat daftar peserta...</p> : (
+          {loadingParticipants ? (
+            <p style={{ padding: '20px', color: '#8a7355' }}>Memuat daftar peserta...</p>
+          ) : (
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Nama</th><th>Email (Identitas Kampus)</th><th>Status Presensi</th><th style={{ textAlign: 'right' }}>Aksi</th></tr>
+                  <tr>
+                    <th>Nama Mahasiswa</th>
+                    <th>Email Kampus</th>
+                    <th>Status Presensi</th>
+                    <th style={{ textAlign: 'right' }}>Aksi Presensi</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {visibleParticipants.map((participant) => {
-                    const isPresent = participant.is_present === true;
-                    return (
-                      <tr key={participant.registration_id}>
-                        <td><strong>{participant.student_name || '-'}</strong></td>
-                        <td>{participant.student_email || '-'}</td>
-                        <td><span className={`badge ${isPresent ? 'hadir' : 'belum'}`}>{isPresent ? 'Hadir' : 'Belum Hadir'}</span></td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            className={`btn btn-sm ${isPresent ? 'btn-outline dark' : 'btn-success'}`}
-                            onClick={() => handleAttendanceToggle(participant)}
-                            disabled={updatingAttendanceId === participant.registration_id}
-                            aria-label={`Tandai ${participant.student_name || 'peserta'} ${isPresent ? 'belum hadir' : 'hadir'}`}
-                          >
-                            {updatingAttendanceId === participant.registration_id ? 'Menyimpan...' : isPresent ? 'Batalkan' : 'Tandai Hadir'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!visibleParticipants.length && <tr><td colSpan="4">Tidak ada peserta pada filter ini.</td></tr>}
+                  {visibleParticipants.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#8a7355' }}>
+                        Belum ada peserta terdaftar pada filter ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    visibleParticipants.map((participant) => {
+                      const isPresent = participant.is_present === true;
+                      return (
+                        <tr key={participant.registration_id}>
+                          <td><strong>{participant.student_name || '-'}</strong></td>
+                          <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '12px' }}>
+                            {participant.student_email || '-'}
+                          </td>
+                          <td>
+                            <span className={`badge ${isPresent ? 'active' : 'pending_verification'}`}>
+                              {isPresent ? '🟢 Hadir' : '⏳ Belum Hadir'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              className={`btn btn-sm ${isPresent ? 'btn-outline dark' : 'btn-success'}`}
+                              onClick={() => handleAttendanceToggle(participant)}
+                              disabled={updatingAttendanceId === participant.registration_id}
+                            >
+                              {updatingAttendanceId === participant.registration_id
+                                ? 'Menyimpan...'
+                                : isPresent
+                                ? 'Batalkan'
+                                : 'Tandai Hadir'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -343,24 +493,25 @@ const PanitiaDashboard = () => {
         </div>
       )}
 
-      {/* Create Event Modal */}
+      {/* Create / Edit Event Modal */}
       {showCreateModal && (
         <div className="modal-backdrop" onClick={closeForm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
             <button className="modal-close" onClick={closeForm}>✕</button>
 
             <div className="eyebrow" style={{ color: '#8a7355', marginBottom: '4px' }}>
-              {editingEventId ? 'Pengubahan Event' : 'Pembuatan Event Baru'}
+              {editingEventId ? 'Edit Event Organisasi' : 'Formulir Pengajuan Event Kampus'}
             </div>
-            <h2>{editingEventId ? 'Edit Detail Event Kampus' : 'Formulir Draft Event Kampus'}</h2>
+            <h2>{editingEventId ? 'Perbarui Data Event' : 'Buat Event Baru (Draft)'}</h2>
             <p style={{ fontSize: '13px', color: '#8a7355', marginTop: '-4px', marginBottom: '18px' }}>
-              Event yang kamu ajukan akan diajukan ke Admin Platform untuk diverifikasi sebelum diterbitkan.
+              Setelah disimpan sebagai draft, jangan lupa klik tombol <strong>"🚀 Ajukan Verifikasi"</strong> agar event ditinjau oleh Admin Kampus.
             </p>
 
             <form onSubmit={handleSubmitEvent}>
               <div className="field">
-                <label>Judul Event Resmi</label>
+                <label htmlFor="event-title">Judul Event Resmi</label>
                 <input
+                  id="event-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -372,43 +523,50 @@ const PanitiaDashboard = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="field">
-                  <label>Kategori Event</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                  <label htmlFor="event-category">Kategori Event</label>
+                  <select
+                    id="event-category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
                     <option value="Technology">Technology &amp; AI</option>
-                    <option value="Career">Career &amp; Business</option>
+                    <option value="Career">Business &amp; Career</option>
                     <option value="Health">Health &amp; Social</option>
                     <option value="Art">Art &amp; Culture</option>
                   </select>
+                  {fieldErrors.category && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.category}</div>}
                 </div>
+
                 <div className="field">
-                  <label>Kuota Peserta</label>
+                  <label htmlFor="event-speaker">Narasumber / Keynote Speaker</label>
                   <input
+                    id="event-speaker"
+                    type="text"
+                    value={speaker}
+                    onChange={(e) => setSpeaker(e.target.value)}
+                    placeholder="mis. Dr. Ir. Budi Rahardjo"
+                    required
+                  />
+                  {fieldErrors.speaker && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.speaker}</div>}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div className="field">
+                  <label htmlFor="event-quota">Kuota Peserta</label>
+                  <input
+                    id="event-quota"
                     type="number"
+                    min="1"
                     value={quota}
                     onChange={(e) => setQuota(e.target.value)}
-                    placeholder="100"
-                    min="10"
                     required
                   />
                   {fieldErrors.quota && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.quota}</div>}
                 </div>
-              </div>
 
-              <div className="field">
-                <label>Nama Narasumber / Guest Speaker</label>
-                <input
-                  type="text"
-                  value={speaker}
-                  onChange={(e) => setSpeaker(e.target.value)}
-                  placeholder="mis. Budi Rahardjo (AI Expert)"
-                  required
-                />
-                {fieldErrors.speaker && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.speaker}</div>}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="field">
-                    <label htmlFor="event-date">Tanggal</label>
+                  <label htmlFor="event-date">Tanggal</label>
                   <input
                     id="event-date"
                     type="date"
@@ -418,8 +576,9 @@ const PanitiaDashboard = () => {
                   />
                   {fieldErrors.date && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.date}</div>}
                 </div>
+
                 <div className="field">
-                  <label htmlFor="event-time">Waktu</label>
+                  <label htmlFor="event-time">Waktu Sesi</label>
                   <input
                     id="event-time"
                     type="time"
@@ -438,12 +597,11 @@ const PanitiaDashboard = () => {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="mis. Auditorium Utama"
+                  placeholder="mis. Auditorium Utama &amp; Zoom Hybrid"
                   required
                 />
                 {fieldErrors.location && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.location}</div>}
               </div>
-
 
               <div className="field">
                 <label htmlFor="event-description">Deskripsi Singkat Acara</label>
@@ -462,8 +620,8 @@ const PanitiaDashboard = () => {
                 <button type="button" className="btn btn-outline dark" onClick={closeForm}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingEventId ? 'Simpan Perubahan' : 'Simpan Draft Event'}
+                <button type="submit" className="btn btn-navy" disabled={submittingForm}>
+                  {submittingForm ? 'Menyimpan...' : editingEventId ? 'Simpan Perubahan' : 'Simpan Draft Event'}
                 </button>
               </div>
             </form>
