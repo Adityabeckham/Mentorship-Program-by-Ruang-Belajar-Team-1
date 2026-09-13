@@ -40,27 +40,50 @@ exports.getManagedEvents = async (req, res, next) => {
 
     if (error) throw error;
 
-    // Calculate real-time participant registration counts for managed events
-    const eventIds = (events || []).map((e) => e.id);
+    // Calculate real-time participant registration & attendance counts
+    const eventIds = (events || []).map((e) => String(e.id));
     let regCounts = {};
+    let presentCounts = {};
     if (eventIds.length > 0) {
       const { data: regData } = await supabase
         .from('registrations')
-        .select('event_id');
+        .select('id, event_id');
       if (regData) {
         regData.forEach((r) => {
           if (r.event_id) {
-            regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+            const k = String(r.event_id).trim();
+            regCounts[k] = (regCounts[k] || 0) + 1;
+          }
+        });
+      }
+
+      const { data: attData } = await supabase
+        .from('attendance')
+        .select('registration_id, is_present, registrations ( event_id )')
+        .eq('is_present', true);
+
+      if (attData) {
+        attData.forEach((att) => {
+          const evtId = Array.isArray(att.registrations)
+            ? att.registrations[0]?.event_id
+            : att.registrations?.event_id;
+          if (evtId) {
+            const k = String(evtId).trim();
+            presentCounts[k] = (presentCounts[k] || 0) + 1;
           }
         });
       }
     }
 
-    const eventsWithCounts = (events || []).map((e) => ({
-      ...e,
-      peserta: regCounts[e.id] || 0,
-      registered: regCounts[e.id] || 0,
-    }));
+    const eventsWithCounts = (events || []).map((e) => {
+      const k = String(e.id).trim();
+      return {
+        ...e,
+        peserta: regCounts[k] || 0,
+        registered: regCounts[k] || 0,
+        present_count: presentCounts[k] || 0,
+      };
+    });
 
     res.status(200).json({
       status: 'success',
@@ -148,27 +171,50 @@ exports.getPublicEvents = async (req, res, next) => {
     if (error) throw error;
     const totalItems = count !== null ? count : (events || []).length;
 
-    // Calculate real-time participant registration counts for public events
-    const eventIds = (events || []).map((e) => e.id);
+    // Calculate real-time participant registration & attendance counts
+    const eventIds = (events || []).map((e) => String(e.id));
     let regCounts = {};
+    let presentCounts = {};
     if (eventIds.length > 0) {
       const { data: regData } = await supabase
         .from('registrations')
-        .select('event_id');
+        .select('id, event_id');
       if (regData) {
         regData.forEach((r) => {
           if (r.event_id) {
-            regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+            const k = String(r.event_id).trim();
+            regCounts[k] = (regCounts[k] || 0) + 1;
+          }
+        });
+      }
+
+      const { data: attData } = await supabase
+        .from('attendance')
+        .select('registration_id, is_present, registrations ( event_id )')
+        .eq('is_present', true);
+
+      if (attData) {
+        attData.forEach((att) => {
+          const evtId = Array.isArray(att.registrations)
+            ? att.registrations[0]?.event_id
+            : att.registrations?.event_id;
+          if (evtId) {
+            const k = String(evtId).trim();
+            presentCounts[k] = (presentCounts[k] || 0) + 1;
           }
         });
       }
     }
 
-    const eventsWithCounts = (events || []).map((e) => ({
-      ...e,
-      peserta: regCounts[e.id] || 0,
-      registered: regCounts[e.id] || 0,
-    }));
+    const eventsWithCounts = (events || []).map((e) => {
+      const k = String(e.id).trim();
+      return {
+        ...e,
+        peserta: regCounts[k] || 0,
+        registered: regCounts[k] || 0,
+        present_count: presentCounts[k] || 0,
+      };
+    });
 
     res.status(200).json({
       status: 'success',

@@ -232,6 +232,7 @@ const PanitiaDashboard = () => {
     const requestId = participantRequestRef.current + 1;
     participantRequestRef.current = requestId;
     setSelectedEventId(eventId);
+    fetchManagedEvents();
     setParticipants([]);
     setLoadingParticipants(true);
     try {
@@ -260,6 +261,7 @@ const PanitiaDashboard = () => {
         )
       );
       toast.success(isPresent ? 'Peserta ditandai hadir.' : 'Status kehadiran dibatalkan.');
+      fetchManagedEvents();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Status kehadiran gagal diperbarui.');
     } finally {

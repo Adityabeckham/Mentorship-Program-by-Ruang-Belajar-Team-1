@@ -38,6 +38,7 @@ const Home = () => {
   const [activeModalEvent, setActiveModalEvent] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [eventsData, setEventsData] = useState([]);
+  const [userRegistrations, setUserRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchEvents = useCallback(async () => {
@@ -45,7 +46,7 @@ const Home = () => {
     try {
       const res = await eventService.getAllEvents();
       const serverEvents = (res.data || []).map((ev, idx) => ({
-        id: ev.id,
+        id: String(ev.id),
         title: ev.title,
         category: ev.category || 'General',
         org: ev.users?.organization_name || ev.users?.nama || 'Panitia Kampus',
@@ -67,9 +68,32 @@ const Home = () => {
     }
   }, []);
 
+  const fetchUserRegistrations = useCallback(async () => {
+    if (!user || user.role !== 'mahasiswa') {
+      setUserRegistrations([]);
+      return;
+    }
+    try {
+      const res = await registrationService.getMyRegistrations();
+      setUserRegistrations(res.data || []);
+    } catch (err) {
+      console.error('Gagal mengambil daftar pendaftaran user:', err);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents]);
+    fetchUserRegistrations();
+  }, [fetchEvents, fetchUserRegistrations]);
+
+  const registeredEventIds = useMemo(() => {
+    const set = new Set();
+    (userRegistrations || []).forEach((r) => {
+      if (r.event_id) set.add(String(r.event_id));
+      if (r.eventId) set.add(String(r.eventId));
+    });
+    return set;
+  }, [userRegistrations]);
 
   const filtered = useMemo(() => {
     return eventsData.filter((ev) => {
@@ -102,13 +126,14 @@ const Home = () => {
         toast.success(`Berhasil mendaftar event: "${ev.title}"! Tiket tersedia di Dashboard Anda.`);
         setActiveModalEvent(null);
         fetchEvents();
+        fetchUserRegistrations();
       } catch (error) {
         toast.error(error.response?.data?.message || 'Gagal mendaftar event. Silakan coba lagi.');
       } finally {
         setIsRegistering(false);
       }
     },
-    [user, navigate, fetchEvents]
+    [user, navigate, fetchEvents, fetchUserRegistrations]
   );
 
   return (
@@ -160,6 +185,7 @@ const Home = () => {
           {filtered.map((ev) => {
             const isFull = ev.registered >= ev.quota;
             const isUrgent = !isFull && ev.quota - ev.registered <= 10;
+            const isRegistered = registeredEventIds.has(String(ev.id));
             return (
               <div
                 key={ev.id}
@@ -168,8 +194,15 @@ const Home = () => {
                 style={{ cursor: 'pointer' }}
               >
                 <div>
-                  <span className="cat-badge">{ev.category}</span>
-                  <div className="org">{ev.org}</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span className="cat-badge">{ev.category}</span>
+                    {isRegistered && (
+                      <span className="cat-badge" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>
+                        ✅ TERDAFTAR
+                      </span>
+                    )}
+                  </div>
+                  <div className="org" style={{ marginTop: '6px' }}>{ev.org}</div>
                   <h3>{ev.title}</h3>
                   <div className="speaker-highlight">🎤 {ev.speaker}</div>
                   <div className="benefit-chips">
@@ -183,8 +216,8 @@ const Home = () => {
                   </div>
                 </div>
                 <div>
-                  <span className={`quota-tag ${isFull ? 'full' : isUrgent ? 'urgent' : ''}`}>
-                    🎟️ {isFull ? 'PENUH' : `${ev.quota - ev.registered} sisa dari ${ev.quota}`}
+                  <span className={`quota-tag ${isRegistered ? 'mint' : isFull ? 'full' : isUrgent ? 'urgent' : ''}`}>
+                    🎟️ {isRegistered ? '✅ TERDAFTAR' : isFull ? 'PENUH' : `${ev.quota - ev.registered} sisa dari ${ev.quota}`}
                   </span>
                 </div>
               </div>
@@ -256,8 +289,26 @@ const Home = () => {
 
                 <div style={{ marginTop: '24px' }}>
                   {activeModalEvent.registered >= activeModalEvent.quota ? (
-                    <button className="btn btn-danger" style={{ width: '100%' }} disabled>
+                    <button className="btn btn-danger" style={{ width: '100%', justifyContent: 'center' }} disabled>
                       🚫 Kuota Pendaftaran Penuh
+                    </button>
+                  ) : registeredEventIds.has(String(activeModalEvent.id)) ? (
+                    <button
+                      className="btn btn-success"
+                      style={{
+                        width: '100%',
+                        justifyContent: 'center',
+                        backgroundColor: '#10b981',
+                        color: '#ffffff',
+                        cursor: 'not-allowed',
+                        border: 'none',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                      }}
+                      disabled
+                    >
+                      ✅ Anda Sudah Terdaftar di Event Ini
                     </button>
                   ) : (
                     <button
