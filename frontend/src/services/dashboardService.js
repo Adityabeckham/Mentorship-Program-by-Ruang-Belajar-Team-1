@@ -1,13 +1,13 @@
 import apiService from './api';
 
 export const dashboardService = {
-  getSummary: async () => {
-    const response = await apiService.get('/dashboard');
+  getAdminStats: async () => {
+    const response = await apiService.get('/admin/dashboard/stats');
     return response.data;
   },
 
-  getStats: async () => {
-    const response = await apiService.get('/dashboard/stats');
+  getPanitiaStats: async () => {
+    const response = await apiService.get('/panitia/dashboard/stats');
     return response.data;
   },
 };

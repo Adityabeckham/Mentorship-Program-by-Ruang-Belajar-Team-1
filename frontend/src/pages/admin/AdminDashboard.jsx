@@ -1,38 +1,131 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-
-const INITIAL_EVENTS = [
-  { id: 'ev-1', org: 'UKM Robotika Kampus', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', date: '22 Agt 2026', status: 'pending_verification', quota: 80, category: 'Technology' },
-  { id: 'ev-2', org: 'BEM Fakultas Ilmu Komputer', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', date: '20 Agt 2026', status: 'published', quota: 100, category: 'Technology' },
-  { id: 'ev-3', org: 'Himpunan Mahasiswa Kesehatan', title: 'Donor Darah Massal & Pemeriksaan Kesehatan Gratis', date: '25 Agt 2026', status: 'published', quota: 150, category: 'Health' },
-  { id: 'ev-4', org: 'UKM Seni & Seni Suara', title: 'Kampus Art Exhibition & Live Acoustic Concert', date: '28 Agt 2026', status: 'pending_verification', quota: 200, category: 'Art' },
-  { id: 'ev-5', org: 'BEM Fakultas Ilmu Komputer', title: 'Hackathon Kampus 24 Jam: Build Smart Campus Apps', date: '01 Sep 2026', status: 'rejected', quota: 60, category: 'Technology' },
-];
+import dashboardService from '../../services/dashboardService';
+import eventService from '../../services/eventService';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [stats, setStats] = useState({
+    total_mahasiswa: 0,
+    total_panitia: 0,
+    total_events: 0,
+    events_by_status: {
+      draft: 0,
+      pending_verification: 0,
+      published: 0,
+      rejected: 0,
+    },
+  });
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingCount = useMemo(() => events.filter(e => e.status === 'pending_verification').length, [events]);
-  const activeCount = useMemo(() => events.filter(e => e.status === 'published').length, [events]);
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [statsRes, eventsRes] = await Promise.allSettled([
+        dashboardService.getAdminStats(),
+        eventService.getAdminEvents(),
+      ]);
 
-  const summaryCards = useMemo(() => [
-    { id: 'mahasiswa', num: '1,280', lbl: 'Total Mahasiswa', sub: 'Terdaftar Aktif', accent: 'mint', icon: '🎓' },
-    { id: 'panitia', num: '12', lbl: 'Total Panitia', sub: 'BEM, Himpunan & UKM', accent: 'purple', icon: '👥' },
-    { id: 'active', num: String(activeCount), lbl: 'Event Active', sub: 'Published di Papan Event', accent: 'navy', icon: '🌟' },
-    { id: 'pending', num: String(pendingCount), lbl: 'Pending Approval', sub: 'Perlu Verifikasi Admin', accent: 'amber', icon: '⏳' },
-  ], [activeCount, pendingCount]);
+      if (statsRes.status === 'fulfilled' && statsRes.value?.data) {
+        setStats(statsRes.value.data);
+      }
 
-  const handleApprove = useCallback((id) => {
-    setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'published' } : ev));
-    toast.success('Event berhasil disetujui & dipublikasikan ke Papan Event!');
+      if (eventsRes.status === 'fulfilled' && eventsRes.value?.data) {
+        const mapped = (eventsRes.value.data || []).map((ev) => ({
+          ...ev,
+          org: ev.users?.organization_name || ev.users?.nama || 'Panitia Kampus',
+          date: ev.event_date
+            ? new Date(ev.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+            : '-',
+          category: ev.category || 'General',
+        }));
+        setEvents(mapped);
+      }
+    } catch (error) {
+      toast.error('Gagal memuat data statistik admin.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleReject = useCallback((id) => {
-    setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'rejected' } : ev));
-    toast.error('Event telah ditolak.');
-  }, []);
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const activeCount = useMemo(
+    () => stats.events_by_status?.published || 0,
+    [stats.events_by_status]
+  );
+  const pendingCount = useMemo(
+    () => stats.events_by_status?.pending_verification || 0,
+    [stats.events_by_status]
+  );
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        id: 'mahasiswa',
+        num: String(stats.total_mahasiswa || 0),
+        lbl: 'Total Mahasiswa',
+        sub: 'Terdaftar Aktif',
+        accent: 'mint',
+        icon: '🎓',
+      },
+      {
+        id: 'panitia',
+        num: String(stats.total_panitia || 0),
+        lbl: 'Total Panitia',
+        sub: 'BEM, Himpunan & UKM',
+        accent: 'purple',
+        icon: '👥',
+      },
+      {
+        id: 'active',
+        num: String(activeCount),
+        lbl: 'Event Active',
+        sub: 'Published di Papan Event',
+        accent: 'navy',
+        icon: '🌟',
+      },
+      {
+        id: 'pending',
+        num: String(pendingCount),
+        lbl: 'Pending Approval',
+        sub: 'Perlu Verifikasi Admin',
+        accent: 'amber',
+        icon: '⏳',
+      },
+    ],
+    [stats.total_mahasiswa, stats.total_panitia, activeCount, pendingCount]
+  );
+
+  const handleApprove = useCallback(
+    async (id) => {
+      try {
+        await eventService.verifyEvent(id, { status: 'published' });
+        toast.success('Event berhasil disetujui & dipublikasikan!');
+        loadDashboardData();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menyetujui event.');
+      }
+    },
+    [loadDashboardData]
+  );
+
+  const handleReject = useCallback(
+    async (id) => {
+      try {
+        await eventService.verifyEvent(id, { status: 'rejected', rejection_reason: 'Ditolak oleh Admin' });
+        toast.error('Event telah ditolak.');
+        loadDashboardData();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menolak event.');
+      }
+    },
+    [loadDashboardData]
+  );
 
   return (
     <div className="page-fade">
@@ -42,7 +135,7 @@ const AdminDashboard = () => {
         <h2 style={{ color: '#fff' }}>Dashboard Admin Platform</h2>
       </div>
 
-      {/* Summary Cards (Acceptance Criteria 1) */}
+      {/* Summary Cards */}
       <div className="stat-grid">
         {summaryCards.map((s) => (
           <div key={s.id} className={`stat-card ${s.accent}`}>
@@ -58,7 +151,7 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* Quick Access Navigation Cards (Acceptance Criteria 2) */}
+      {/* Quick Access Navigation Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '24px' }}>
         <div className="card" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
@@ -88,7 +181,7 @@ const AdminDashboard = () => {
           </div>
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className="badge active">
-              12 Panitia Aktif
+              {stats.total_panitia || 0} Panitia Terdaftar
             </span>
             <button className="btn btn-outline dark btn-sm" onClick={() => navigate('/admin/panitia')}>
               Kelola Panitia →
@@ -124,39 +217,53 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {events.map((ev) => (
-                <tr key={ev.id}>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px', fontWeight: 700 }}>
-                    {ev.org}
-                  </td>
-                  <td><strong>{ev.title}</strong></td>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px' }}>{ev.date}</td>
-                  <td>
-                    <span className="cat-badge" style={{ margin: 0 }}>{ev.category}</span>
-                  </td>
-                  <td>
-                    <span className={`badge ${ev.status}`}>
-                      {ev.status === 'published' ? '✅ Approved' : ev.status === 'pending_verification' ? '⏳ Pending' : '❌ Rejected'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {ev.status === 'pending_verification' ? (
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
-                        <button className="btn btn-success btn-sm" onClick={() => handleApprove(ev.id)}>
-                          ✅ Approve
-                        </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleReject(ev.id)}>
-                          ❌ Reject
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '12px', color: '#8a7355', fontFamily: "'Space Mono', monospace" }}>
-                        Selesai Ditinjau
-                      </span>
-                    )}
+              {loading ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Memuat data event...
                   </td>
                 </tr>
-              ))}
+              ) : events.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Belum ada pengajuan event di database.
+                  </td>
+                </tr>
+              ) : (
+                events.map((ev) => (
+                  <tr key={ev.id}>
+                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px', fontWeight: 700 }}>
+                      {ev.org}
+                    </td>
+                    <td><strong>{ev.title}</strong></td>
+                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px' }}>{ev.date}</td>
+                    <td>
+                      <span className="cat-badge" style={{ margin: 0 }}>{ev.category}</span>
+                    </td>
+                    <td>
+                      <span className={`badge ${ev.status}`}>
+                        {ev.status === 'published' ? '✅ Approved' : ev.status === 'pending_verification' ? '⏳ Pending' : '❌ Rejected'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {ev.status === 'pending_verification' ? (
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <button className="btn btn-success btn-sm" onClick={() => handleApprove(ev.id)}>
+                            ✅ Approve
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleReject(ev.id)}>
+                            ❌ Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#8a7355', fontFamily: "'Space Mono', monospace" }}>
+                          Selesai Ditinjau
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

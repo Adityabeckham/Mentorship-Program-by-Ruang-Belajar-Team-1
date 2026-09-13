@@ -1,55 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import toast from 'react-hot-toast';
-import { eventService } from '../services/eventService';
+import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
 
-const POSTER_COLORS = {
-  yellow: 'c-yellow',
-  coral: 'c-coral',
-  sky: 'c-sky',
-  mint: 'c-mint',
-  lavender: 'c-lavender',
-};
-
-const EVENTS = [
-  {
-    id: 'e1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', category: 'Technology',
-    org: 'BEM Fakultas Ilmu Komputer', location: 'Auditorium Utama & Zoom Hybrid', date: '2026-08-20T09:00',
-    speaker: 'Budi Rahardjo (AI Expert & Tech Venture Partner)', quota: 100, registered: 98, status: 'published', color: 'yellow',
-    benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '🍱 Free Lunch Box & Snack', '🎁 Doorprize E-Wallet 3Jt'],
-    desc: 'Buka peluang karir masa depanmu! Pelajari bagaimana Generative AI dan Prompt Engineering mentransformasi industri perangkat lunak modern. Terbuka untuk seluruh mahasiswa kampus.'
-  },
-  {
-    id: 'e2', title: 'Robotics Bootcamp & Battle Bot Tournament 2026', category: 'Technology',
-    org: 'UKM Robotika Kampus', location: 'Lab Robotika & Gedung Serbaguna', date: '2026-08-22T09:00',
-    speaker: 'Dr. Eng. Ir. Hendra (Pakar Mekatronika)', quota: 80, registered: 45, status: 'published', color: 'sky',
-    benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '🤖 Kit Komponen Robot Dasar', '🏆 Total Hadiah 5 Juta'],
-    desc: 'Pelatihan praktis pembuatan robot bertema Battle Bot. Peserta akan merakit, memprogram mikrokontroler, dan bertanding di arena akhir acara.'
-  },
-  {
-    id: 'e3', title: 'Donor Darah Massal & Pemeriksaan Kesehatan Gratis', category: 'Health',
-    org: 'Himpunan Mahasiswa Kesehatan', location: 'Gedung Serbaguna Kampus', date: '2026-08-25T08:00',
-    speaker: 'Tim Dokter Medis PMI Kota', quota: 150, registered: 110, status: 'published', color: 'mint',
-    benefits: ['✨ Piagam Kemanusiaan PMI', '🥛 Paket Suplemen & Susu', '🩺 Cek Gula Darah & Kolesterol'],
-    desc: 'Setetes darahmu penyelemat jiwa sesama! Dapatkan pemeriksaan kesehatan gratis dari dokter spesialis dan pemeriksaan gula darah mandiri.'
-  },
-  {
-    id: 'e4', title: 'Kampus Art Exhibition & Live Acoustic Concert', category: 'Art',
-    org: 'UKM Seni & Seni Suara', location: 'Lapangan Outdoor Kampus', date: '2026-08-28T15:00',
-    speaker: 'Dian Sastro & Band Kampus Alumnus', quota: 200, registered: 200, status: 'published', color: 'lavender',
-    benefits: ['✨ E-Sertifikat SKKM (3 Poin)', '🎨 Merch Sticker Event', '🍿 Snack & Softdrink Gratis'],
-    desc: 'Nikmati pameran seni lukis dan instalasi mahasiswa kampus dipadu konser akustik merdu saat matahari terbenam.'
-  },
-  {
-    id: 'e5', title: 'Workshop Public Speaking & Leadership Masterclass', category: 'Career',
-    org: 'BEM Universitas Kampus', location: 'Ruang Seminar Perpustakaan L5', date: '2026-09-05T10:00',
-    speaker: 'Najwa Shihab (Jurnalis & Founder Narasi)', quota: 120, registered: 60, status: 'published', color: 'coral',
-    benefits: ['✨ E-Sertifikat SKKM (5 Poin)', '📚 Buku Panduan Leadership', '☕ Coffee Break Premium'],
-    desc: 'Kuasai seni berkomunikasi di depan umum, tingkatkan rasa percaya diri, dan bangun jiwa kepemimpinan mahasiswa di era digital.'
-  }
-];
+const POSTER_COLORS = ['c-yellow', 'c-sky', 'c-mint', 'c-coral', 'c-lavender'];
 
 const CATEGORIES = ['All', 'Technology', 'Career', 'Health', 'Art'];
 const CAT_LABELS = {
@@ -57,12 +13,22 @@ const CAT_LABELS = {
   Technology: '🤖 Technology & AI',
   Career: '💼 Business & Career',
   Health: '🩺 Health & Social',
-  Art: '🎨 Art & Culture'
+  Art: '🎨 Art & Culture',
 };
 
-const formatDate = (dt) => new Date(dt).toLocaleDateString('id-ID', {
-  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-});
+const formatDate = (dt) => {
+  if (!dt) return '-';
+  const parsed = new Date(dt);
+  return Number.isNaN(parsed.getTime())
+    ? '-'
+    : parsed.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+};
 
 const Home = () => {
   const { user } = useAuth();
@@ -71,44 +37,45 @@ const Home = () => {
   const [selectedCat, setSelectedCat] = useState('All');
   const [activeModalEvent, setActiveModalEvent] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [eventsData, setEventsData] = useState(EVENTS);
+  const [eventsData, setEventsData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    eventService.getAllEvents().then(res => {
-      if (res && res.data) {
-        // Gabungkan data statis dengan data dinamis dari backend
-        // Data dari backend diberi prioritas (ditaruh di awal)
-        const dynamicEvents = res.data.map(ev => ({
-          ...ev,
-          id: ev.id,
-          title: ev.title,
-          category: ev.category,
-          org: ev.users?.organization_name || 'Organisasi Mahasiswa',
-          location: ev.location,
-          date: ev.event_date || ev.date,
-          speaker: ev.speaker,
-          quota: ev.quota,
-          registered: ev.peserta || 0,
-          status: ev.status,
-          color: 'sky',
-          benefits: ['✨ Sertifikat', 'Knowledge'],
-          desc: ev.description
-        }));
-        setEventsData(prev => {
-          // Cegah duplikasi karena StrictMode double-fetch
-          const newEvents = dynamicEvents.filter(d => !prev.some(p => p.id === d.id));
-          return [...newEvents, ...prev];
-        });
-      }
-    }).catch(err => {
-      console.warn('Gagal memuat event publik dari backend:', err);
-    });
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await eventService.getAllEvents();
+      const serverEvents = (res.data || []).map((ev, idx) => ({
+        id: ev.id,
+        title: ev.title,
+        category: ev.category || 'General',
+        org: ev.users?.organization_name || ev.users?.nama || 'Panitia Kampus',
+        location: ev.location || '-',
+        date: ev.event_date,
+        speaker: ev.speaker || 'Narasumber Kampus',
+        quota: ev.quota || 0,
+        registered: ev.registered || ev.peserta || 0,
+        status: ev.status || 'published',
+        color: POSTER_COLORS[idx % POSTER_COLORS.length],
+        benefits: ev.benefits || ['✨ E-Sertifikat SKKM Resmi'],
+        desc: ev.description || 'Tidak ada deskripsi tambahan.',
+      }));
+      setEventsData(serverEvents);
+    } catch (err) {
+      toast.error('Gagal mengambil daftar event.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
   const filtered = useMemo(() => {
-    return eventsData.filter(ev => {
-      const matchCat = selectedCat === 'All' || ev.category === selectedCat;
-      const matchSearch = !search ||
+    return eventsData.filter((ev) => {
+      const matchCat = selectedCat === 'All' || ev.category.toLowerCase() === selectedCat.toLowerCase();
+      const matchSearch =
+        search.trim() === '' ||
         ev.title.toLowerCase().includes(search.toLowerCase()) ||
         ev.org.toLowerCase().includes(search.toLowerCase()) ||
         ev.speaker.toLowerCase().includes(search.toLowerCase());
@@ -116,25 +83,33 @@ const Home = () => {
     });
   }, [selectedCat, search, eventsData]);
 
-  const handleRegisterEvent = useCallback(async (ev) => {
-    if (!user) {
-      toast.error('Silakan masuk (login) terlebih dahulu untuk mendaftar event.');
-      navigate('/login');
-      return;
-    }
-    
-    setIsRegistering(true);
-    
-    try {
-      await registrationService.registerForEvent(ev.id);
-      toast.success(`Berhasil mendaftar event: "${ev.title}"! Tiket tersedia di Dashboard Anda.`);
-      setActiveModalEvent(null);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Gagal mendaftar event. Silakan coba lagi.');
-    } finally {
-      setIsRegistering(false);
-    }
-  }, [user, navigate]);
+  const handleRegisterEvent = useCallback(
+    async (ev) => {
+      if (!user) {
+        toast.error('Silakan masuk (login) terlebih dahulu untuk mendaftar event.');
+        navigate('/login');
+        return;
+      }
+
+      if (user.role === 'panitia' || user.role === 'admin') {
+        toast.error('Pendaftaran event khusus untuk akun role Mahasiswa.');
+        return;
+      }
+
+      setIsRegistering(true);
+      try {
+        await registrationService.registerForEvent(ev.id);
+        toast.success(`Berhasil mendaftar event: "${ev.title}"! Tiket tersedia di Dashboard Anda.`);
+        setActiveModalEvent(null);
+        fetchEvents();
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Gagal mendaftar event. Silakan coba lagi.');
+      } finally {
+        setIsRegistering(false);
+      }
+    },
+    [user, navigate, fetchEvents]
+  );
 
   return (
     <div className="page-fade">
@@ -158,7 +133,7 @@ const Home = () => {
           />
         </div>
         <div className="category-pills">
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.map((cat) => (
             <button
               key={cat}
               className={`cat-pill ${selectedCat === cat ? 'active' : ''}`}
@@ -171,16 +146,20 @@ const Home = () => {
       </div>
 
       {/* Poster Board Grid */}
-      {filtered.length === 0 ? (
+      {loading ? (
         <div className="empty-state">
-          <p style={{ fontSize: '18px', margin: '0 0 8px' }}>😔 Tidak ada event yang sesuai.</p>
-          <p style={{ fontSize: '13px', color: '#dbe6f2' }}>Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
+          <p style={{ fontSize: '16px', margin: 0, color: '#dbe6f2' }}>Memuat daftar event kampus...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="empty-state">
+          <p style={{ fontSize: '18px', margin: '0 0 8px' }}>😔 Belum ada event yang dipublikasikan.</p>
+          <p style={{ fontSize: '13px', color: '#dbe6f2' }}>Coba ubah kata kunci pencarian atau silakan kembali lagi nanti.</p>
         </div>
       ) : (
         <div className="board">
-          {filtered.map(ev => {
+          {filtered.map((ev) => {
             const isFull = ev.registered >= ev.quota;
-            const isUrgent = !isFull && (ev.quota - ev.registered) <= 10;
+            const isUrgent = !isFull && ev.quota - ev.registered <= 10;
             return (
               <div
                 key={ev.id}
@@ -194,7 +173,9 @@ const Home = () => {
                   <h3>{ev.title}</h3>
                   <div className="speaker-highlight">🎤 {ev.speaker}</div>
                   <div className="benefit-chips">
-                    {ev.benefits.map((b, i) => <span key={i} className="chip">{b}</span>)}
+                    {ev.benefits.map((b, i) => (
+                      <span key={i} className="chip">{b}</span>
+                    ))}
                   </div>
                   <div className="meta">
                     📅 {formatDate(ev.date)}<br />
@@ -245,17 +226,22 @@ const Home = () => {
                   <div style={{ fontSize: '20px', fontFamily: "'Anton', sans-serif", marginTop: '6px' }}>
                     {activeModalEvent.registered} / {activeModalEvent.quota} Terisi
                   </div>
-                  
+
                   <div className="quota-bar">
                     <div
                       className={
                         activeModalEvent.registered >= activeModalEvent.quota
                           ? 'full'
-                          : (activeModalEvent.quota - activeModalEvent.registered) <= 10
+                          : activeModalEvent.quota - activeModalEvent.registered <= 10
                           ? 'warn'
                           : ''
                       }
-                      style={{ width: `${Math.min(100, (activeModalEvent.registered / activeModalEvent.quota) * 100)}%` }}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (activeModalEvent.registered / (activeModalEvent.quota || 1)) * 100
+                        )}%`,
+                      }}
                     />
                   </div>
 
@@ -282,13 +268,28 @@ const Home = () => {
                     >
                       {isRegistering ? (
                         <>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 0.8s linear infinite', marginRight: '6px' }}>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            style={{ animation: 'spin 0.8s linear infinite', marginRight: '6px' }}
+                          >
                             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                           </svg>
                           Memproses Pendaftaran...
                         </>
+                      ) : user ? (
+                        user.role === 'panitia' || user.role === 'admin' ? (
+                          'ℹ️ Hanya Mahasiswa yang Dapat Mendaftar'
+                        ) : (
+                          '🎟️ Daftar Event Sekarang'
+                        )
                       ) : (
-                        user ? '🎟️ Daftar Event Sekarang' : '🔑 Masuk untuk Mendaftar'
+                        '🔑 Masuk untuk Mendaftar'
                       )}
                     </button>
                   )}

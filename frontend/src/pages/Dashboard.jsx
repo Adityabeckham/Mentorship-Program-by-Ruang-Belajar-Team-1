@@ -1,21 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import toast from 'react-hot-toast';
-
-const MY_EVENTS = [
-  { id: 'm1', title: 'Seminar Nasional: Generative AI & Career Transformation 2026', org: 'BEM Fakultas Ilmu Komputer', date: '20 Agustus 2026, 09:00', location: 'Auditorium Utama & Zoom Hybrid', status: 'published', hadir: 'hadir', ticketCode: 'EHK-AI-2026-0091' },
-  { id: 'm2', title: 'Donor Darah Massal & Pemeriksaan Kesehatan Gratis', org: 'Himpunan Mahasiswa Kesehatan', date: '25 Agustus 2026, 08:00', location: 'Gedung Serbaguna Kampus', status: 'published', hadir: 'hadir', ticketCode: 'EHK-HEALTH-2026-0104' },
-];
+import registrationService from '../services/registrationService';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [registrations, setRegistrations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  const stats = [
-    { num: '2', lbl: 'Event Didaftarkan', accent: 'navy', icon: '🎟️' },
-    { num: '2', lbl: 'Kehadiran Dikonfirmasi', accent: 'mint', icon: '✅' },
-    { num: '1', lbl: 'E-Sertifikat SKKM', accent: 'coral', icon: '🏆' },
-  ];
+  const fetchMyRegistrations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await registrationService.getMyRegistrations();
+      const list = (res.data || []).map((r) => ({
+        id: r.id,
+        ticketCode: r.ticket_code || `EHK-${(r.id || '').substring(0, 8).toUpperCase()}`,
+        title: r.events?.title || 'Event Kampus',
+        org: r.events?.users?.organization_name || r.events?.users?.nama || 'Panitia Kampus',
+        date: r.events?.event_date
+          ? new Date(r.events.event_date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+          : '-',
+        location: r.events?.location || '-',
+        status: r.events?.status || 'published',
+        isPresent: r.is_present || false,
+      }));
+      setRegistrations(list);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal memuat daftar registrasi event.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMyRegistrations();
+  }, [fetchMyRegistrations]);
+
+  const stats = useMemo(() => {
+    const total = registrations.length;
+    const isPresentCount = registrations.filter((r) => r.isPresent).length;
+    return [
+      { num: String(total), lbl: 'Event Didaftarkan', accent: 'navy', icon: '🎟️' },
+      { num: String(isPresentCount), lbl: 'Kehadiran Dikonfirmasi', accent: 'mint', icon: '✅' },
+      { num: String(isPresentCount), lbl: 'E-Sertifikat SKKM', accent: 'coral', icon: '🏆' },
+    ];
+  }, [registrations]);
 
   return (
     <div className="page-fade">
@@ -54,28 +84,48 @@ const Dashboard = () => {
             <thead>
               <tr>
                 <th>Judul Event</th>
-                <th>Organisasi Penyelenggara</th>
-                <th>Tanggal Pelaksanaan</th>
-                <th>Status Registrasi</th>
-                <th>Kehadiran Peserta</th>
-                <th style={{ textAlign: 'right' }}>Aksi E-Tiket</th>
+                <th>Penyelenggara</th>
+                <th>Waktu Pelaksanaan</th>
+                <th>Lokasi</th>
+                <th>Status Kehadiran</th>
+                <th style={{ textAlign: 'right' }}>Aksi Tiket</th>
               </tr>
             </thead>
             <tbody>
-              {MY_EVENTS.map((ev) => (
-                <tr key={ev.id}>
-                  <td><strong>{ev.title}</strong></td>
-                  <td>{ev.org}</td>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11.5px' }}>{ev.date}</td>
-                  <td><span className={`badge ${ev.status}`}>Terdaftar</span></td>
-                  <td><span className={`badge ${ev.hadir}`}>{ev.hadir === 'hadir' ? 'Hadir ✅' : 'Belum'}</span></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="btn btn-navy btn-sm" onClick={() => setSelectedTicket(ev)}>
-                      🎟️ Lihat E-Tiket
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Memuat data registrasi...
                   </td>
                 </tr>
-              ))}
+              ) : registrations.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Anda belum mendaftar ke event manapun. Silakan lihat Papan Event di Halaman Utama.
+                  </td>
+                </tr>
+              ) : (
+                registrations.map((ev) => (
+                  <tr key={ev.id}>
+                    <td><strong>{ev.title}</strong></td>
+                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px', fontWeight: 700 }}>
+                      {ev.org}
+                    </td>
+                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px' }}>{ev.date}</td>
+                    <td style={{ fontSize: '12.5px' }}>📍 {ev.location}</td>
+                    <td>
+                      <span className={`badge ${ev.isPresent ? 'active' : 'pending_verification'}`}>
+                        {ev.isPresent ? '✅ HADIR' : '⏳ BELUM HADIR'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-navy btn-sm" onClick={() => setSelectedTicket(ev)}>
+                        🎟️ Lihat E-Tiket
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -84,46 +134,34 @@ const Dashboard = () => {
       {/* Ticket Modal */}
       {selectedTicket && (
         <div className="modal-backdrop" onClick={() => setSelectedTicket(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <button className="modal-close" onClick={() => setSelectedTicket(null)}>✕</button>
 
-            <div className="ticket">
-              <div>
-                <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-                  <div className="eyebrow" style={{ color: '#8a7355' }}>Resmi Kampus • E-TIKET</div>
-                  <h3 style={{ fontSize: '20px', margin: '4px 0 0' }}>{selectedTicket.title}</h3>
-                  <div style={{ fontSize: '11.5px', fontFamily: "'Space Mono', monospace", color: '#8a7355', marginTop: '2px' }}>
-                    {selectedTicket.org}
-                  </div>
-                </div>
+            <div className="eyebrow" style={{ color: '#8a7355', marginBottom: '4px' }}>E-Tiket Peserta Kampus</div>
+            <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>{selectedTicket.title}</h2>
 
-                <div className="perforation" />
-
-                <div style={{ background: '#fff', padding: '14px', borderRadius: '8px', border: '1.5px solid #e5dcc8' }}>
-                  <div style={{ fontSize: '12px', color: '#8a7355', fontFamily: "'Space Mono', monospace" }}>KODE TIKET UNIK</div>
-                  <div style={{ fontSize: '18px', fontFamily: "'Anton', sans-serif", letterSpacing: '1px', color: 'var(--navy)' }}>
-                    {selectedTicket.ticketCode}
-                  </div>
-                  <div style={{ marginTop: '8px', fontSize: '12.5px', lineHeight: '1.5' }}>
-                    👤 <strong>Nama Peserta:</strong> {user?.nama || 'Mahasiswa'}<br />
-                    📅 <strong>Waktu:</strong> {selectedTicket.date}<br />
-                    📍 <strong>Lokasi:</strong> {selectedTicket.location}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                  <span className="stamp">VERIFIED ACARA RESMI</span>
-                </div>
+            <div style={{ background: '#fcf8f0', border: '2px dashed #c9bda2', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', fontFamily: "'Space Mono', monospace", color: '#8a7355' }}>
+                KODE TIKET RESMI
               </div>
-
-              <div style={{ marginTop: '20px' }}>
-                <button className="btn btn-navy" style={{ width: '100%', justifyContent: 'center' }} onClick={() => {
-                  toast.success('E-Tiket berhasil diunduh dalam format gambar/PDF!');
-                  setSelectedTicket(null);
-                }}>
-                  📥 Cetak / Simpan E-Tiket
-                </button>
+              <div style={{ fontSize: '22px', fontFamily: "'Space Mono', monospace", fontWeight: 700, color: 'var(--navy)', margin: '6px 0' }}>
+                {selectedTicket.ticketCode}
               </div>
+              <div style={{ fontSize: '12px', color: '#8a7355' }}>
+                Nama Peserta: <strong>{user?.nama}</strong> ({user?.email})
+              </div>
+            </div>
+
+            <div style={{ marginTop: '16px', fontSize: '13px', lineHeight: '1.6', color: 'var(--ink)' }}>
+              📍 <strong>Lokasi:</strong> {selectedTicket.location}<br />
+              🗓️ <strong>Waktu:</strong> {selectedTicket.date}<br />
+              🏢 <strong>Organisasi:</strong> {selectedTicket.org}
+            </div>
+
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-navy" onClick={() => setSelectedTicket(null)}>
+                Tutup
+              </button>
             </div>
           </div>
         </div>

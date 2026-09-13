@@ -1,90 +1,128 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import * as yup from 'yup';
 import DOMPurify from 'dompurify';
+import userService from '../../services/userService';
 
 const panitiaSchema = yup.object().shape({
-  formName: yup.string().required('Nama organisasi wajib diisi.'),
-  formType: yup.string().required('Jenis organisasi wajib diisi.'),
-  formEmail: yup.string().required('Email resmi wajib diisi.').email('Format email tidak valid.'),
-  formPic: yup.string().required('Nama penanggung jawab wajib diisi.'),
+  formName: yup.string().required('Nama organisasi panitia wajib diisi.'),
+  formEmail: yup
+    .string()
+    .email('Format email tidak valid.')
+    .required('Email resmi organisasi wajib diisi.'),
+  formPassword: yup
+    .string()
+    .min(6, 'Password minimal 6 karakter.')
+    .required('Password wajib diisi.'),
+  formPic: yup.string().required('Nama penanggung jawab (PIC) wajib diisi.'),
 });
 
-const INITIAL_PANITIA = [
-  { id: 'p-1', name: 'BEM Fakultas Ilmu Komputer', type: 'BEM', email: 'bem.fasilkom@kampus.ac.id', pic: 'Aditya Beckham', totalEvents: 4, status: 'active' },
-  { id: 'p-2', name: 'Himpunan Mahasiswa Kesehatan', type: 'Himpunan', email: 'hmk@kampus.ac.id', pic: 'Siti Rahmawati', totalEvents: 2, status: 'active' },
-  { id: 'p-3', name: 'UKM Robotika Kampus', type: 'UKM', email: 'ukm.robotika@kampus.ac.id', pic: 'Fajar Nugraha', totalEvents: 3, status: 'active' },
-  { id: 'p-4', name: 'UKM Seni & Seni Suara', type: 'UKM', email: 'ukm.seni@kampus.ac.id', pic: 'Maya Indah', totalEvents: 1, status: 'active' },
-  { id: 'p-5', name: 'Himpunan Mahasiswa Elektro', type: 'Himpunan', email: 'hme@kampus.ac.id', pic: 'Rian Hidayat', totalEvents: 0, status: 'inactive' },
-];
-
 const AdminPanitia = () => {
-  const [panitiaList, setPanitiaList] = useState(INITIAL_PANITIA);
+  const [panitiaList, setPanitiaList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Form states for new panitia
+  // Form states
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState('UKM');
   const [formEmail, setFormEmail] = useState('');
+  const [formPassword, setFormPassword] = useState('Panitia123!');
   const [formPic, setFormPic] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchPanitiaList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await userService.getPanitiaList();
+      const list = (res.data || []).map((p) => ({
+        id: p.id,
+        name: p.organization_name || p.nama,
+        type: p.organization_name ? (p.organization_name.includes('BEM') ? 'BEM' : p.organization_name.includes('Himpunan') ? 'Himpunan' : 'UKM') : 'UKM',
+        email: p.email,
+        pic: p.nama,
+        totalEvents: 0,
+        status: 'active',
+      }));
+      setPanitiaList(list);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal mengambil daftar panitia.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPanitiaList();
+  }, [fetchPanitiaList]);
 
   const filteredList = useMemo(() => {
-    return panitiaList.filter(p =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.pic.toLowerCase().includes(search.toLowerCase()) ||
-      p.email.toLowerCase().includes(search.toLowerCase())
+    return panitiaList.filter(
+      (p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.pic.toLowerCase().includes(search.toLowerCase()) ||
+        p.email.toLowerCase().includes(search.toLowerCase())
     );
   }, [panitiaList, search]);
 
-  const toggleStatus = useCallback((id) => {
-    setPanitiaList(prev => prev.map(p => {
-      if (p.id === id) {
-        const nextStatus = p.status === 'active' ? 'inactive' : 'active';
-        toast.success(`Akun ${p.name} kini ${nextStatus === 'active' ? 'AKTIF' : 'NONAKTIF'}`);
-        return { ...p, status: nextStatus };
-      }
-      return p;
-    }));
-  }, []);
-
-  const handleAddPanitia = useCallback(async (e) => {
-    e.preventDefault();
-    setFieldErrors({});
-    
+  const handleDeletePanitia = useCallback(async (id, name) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus akun panitia '${name}'?`)) return;
     try {
-      await panitiaSchema.validate(
-        { formName, formType, formEmail, formPic },
-        { abortEarly: false }
-      );
+      await userService.deletePanitia(id);
+      toast.success(`Akun panitia '${name}' berhasil dihapus dari database.`);
+      fetchPanitiaList();
     } catch (err) {
-      if (err instanceof yup.ValidationError) {
-        const errors = {};
-        err.inner.forEach((e) => {
-          errors[e.path] = e.message;
-        });
-        setFieldErrors(errors);
-        toast.error('Periksa kembali isian formulir Anda.');
-        return;
-      }
+      toast.error(err.response?.data?.message || 'Gagal menghapus akun panitia.');
     }
-    const newEntry = {
-      id: `p-${Date.now()}`,
-      name: DOMPurify.sanitize(formName),
-      type: formType,
-      email: formEmail,
-      pic: DOMPurify.sanitize(formPic),
-      totalEvents: 0,
-      status: 'active',
-    };
-    setPanitiaList(prev => [newEntry, ...prev]);
-    toast.success(`Akun panitia baru '${formName}' berhasil dibuat!`);
-    setShowAddModal(false);
-    setFormName('');
-    setFormEmail('');
-    setFormPic('');
-  }, [formName, formEmail, formPic, formType]);
+  }, [fetchPanitiaList]);
+
+  const handleAddPanitia = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setFieldErrors({});
+
+      try {
+        await panitiaSchema.validate(
+          { formName, formEmail, formPassword, formPic },
+          { abortEarly: false }
+        );
+      } catch (err) {
+        if (err.inner) {
+          const errors = {};
+          err.inner.forEach((e) => {
+            errors[e.path] = e.message;
+          });
+          setFieldErrors(errors);
+          toast.error('Periksa kembali isian formulir Anda.');
+          return;
+        }
+      }
+
+      setSubmitting(true);
+      try {
+        await userService.createPanitia({
+          nama: DOMPurify.sanitize(formPic),
+          email: formEmail.trim().toLowerCase(),
+          password: formPassword,
+          organization_name: DOMPurify.sanitize(formName),
+        });
+
+        toast.success(`Akun panitia baru '${formName}' berhasil dibuat!`);
+        setShowAddModal(false);
+        setFormName('');
+        setFormEmail('');
+        setFormPic('');
+        setFormPassword('Panitia123!');
+        fetchPanitiaList();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal membuat akun panitia baru.');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [formName, formEmail, formPassword, formPic, fetchPanitiaList]
+  );
 
   return (
     <div className="page-fade">
@@ -101,11 +139,11 @@ const AdminPanitia = () => {
           <div className="lbl">Total Akun Panitia</div>
         </div>
         <div className="stat-card mint">
-          <div className="num">{panitiaList.filter(p => p.status === 'active').length}</div>
+          <div className="num">{panitiaList.filter((p) => p.status === 'active').length}</div>
           <div className="lbl">Akun Aktif</div>
         </div>
         <div className="stat-card amber">
-          <div className="num">{panitiaList.filter(p => p.status === 'inactive').length}</div>
+          <div className="num">{panitiaList.filter((p) => p.status === 'inactive').length}</div>
           <div className="lbl">Akun Nonaktif</div>
         </div>
         <div className="stat-card navy">
@@ -148,10 +186,16 @@ const AdminPanitia = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredList.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
-                    Tidak ada akun panitia yang cocok dengan kata kunci pencarian.
+                    Memuat daftar panitia...
+                  </td>
+                </tr>
+              ) : filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '32px', color: '#8a7355' }}>
+                    Belum ada akun panitia terdaftar di database.
                   </td>
                 </tr>
               ) : (
@@ -171,10 +215,10 @@ const AdminPanitia = () => {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <button
-                        className={`btn btn-sm ${p.status === 'active' ? 'btn-danger' : 'btn-success'}`}
-                        onClick={() => toggleStatus(p.id)}
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDeletePanitia(p.id, p.name)}
                       >
-                        {p.status === 'active' ? 'Nonaktifkan' : 'Aktifkan Akun'}
+                        Hapus Akun
                       </button>
                     </td>
                   </tr>
@@ -232,6 +276,18 @@ const AdminPanitia = () => {
               </div>
 
               <div className="field">
+                <label>Password Akun</label>
+                <input
+                  type="password"
+                  value={formPassword}
+                  onChange={(e) => setFormPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  required
+                />
+                {fieldErrors.formPassword && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.formPassword}</div>}
+              </div>
+
+              <div className="field">
                 <label>Nama Penanggung Jawab (PIC)</label>
                 <input
                   type="text"
@@ -247,8 +303,8 @@ const AdminPanitia = () => {
                 <button type="button" className="btn btn-outline dark" onClick={() => setShowAddModal(false)}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-navy">
-                  Simpan &amp; Buat Akun
+                <button type="submit" className="btn btn-navy" disabled={submitting}>
+                  {submitting ? 'Menyimpan...' : 'Simpan & Buat Akun'}
                 </button>
               </div>
             </form>
