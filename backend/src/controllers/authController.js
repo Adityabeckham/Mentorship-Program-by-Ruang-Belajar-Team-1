@@ -27,10 +27,12 @@ exports.register = async (req, res, next) => {
       return next(new AppError('Format email tidak valid', 400));
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const { data: existingUser, error: findErr } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email.trim().toLowerCase())
+      .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (findErr) throw findErr;
@@ -47,7 +49,7 @@ exports.register = async (req, res, next) => {
       .insert([
         {
           nama,
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           password: hashedPassword,
           role: role && ['mahasiswa', 'panitia', 'admin'].includes(role) ? role : 'mahasiswa',
         },
@@ -79,7 +81,7 @@ exports.login = async (req, res, next) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // STRICT DATABASE QUERY: Find user in Supabase DB
+    // Query user directly from Supabase DB
     const { data: user, error: findErr } = await supabase
       .from('users')
       .select('*')
