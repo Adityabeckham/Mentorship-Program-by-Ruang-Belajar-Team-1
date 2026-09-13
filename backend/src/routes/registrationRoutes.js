@@ -10,7 +10,7 @@ router.use(authenticateToken);
 // GET /api/v1/registrations/me
 router.get('/registrations/me', authenticateToken, registrationController.getMyRegistrations);
 
-// POST /api/v1/events/:id/register
-router.post('/events/:id/register', authenticateToken, registrationController.registerToEvent);
+// POST /api/v1/events/:id/register (Khusus Mahasiswa)
+router.post('/events/:id/register', authenticateToken, authorizeRoles('mahasiswa'), registrationController.registerToEvent);
 
 module.exports = router;
