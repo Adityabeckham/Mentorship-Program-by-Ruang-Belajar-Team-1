@@ -17,7 +17,7 @@ export const eventService = {
   },
 
   getEventParticipants: async (id) => {
-    const response = await apiService.get(`/events/${id}/participants`);
+    const response = await apiService.get('/events/' + id + '/participants');
     return response.data;
   },
 
@@ -34,12 +34,12 @@ export const eventService = {
   },
 
   createEvent: async (payload) => {
-    const response = await apiService.post('/panitia/events', payload);
+    const response = await apiService.post('/events', payload);
     return response.data;
   },
 
   updateEvent: async (id, payload) => {
-    const response = await apiService.put('/panitia/events/' + id, payload);
+    const response = await apiService.put('/events/' + id, payload);
     return response.data;
   },
 

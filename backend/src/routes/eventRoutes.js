@@ -5,7 +5,6 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authorizeRoles } = require('../middlewares/roleMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { createEventValidation } = require('../validators/eventValidators');
-const { verifyEventOwnership } = require('../utils/authorizeOwnership');
 
 // Public
 router.get('/events', eventController.getPublicEvents);
@@ -29,9 +28,9 @@ router.get(
   eventController.getEventParticipants
 );
 
-// CRUD Event Panitia
+// CRUD Event Panitia (Mendukung endpoint /events dan /panitia/events)
 router.post(
-  '/events',
+  ['/events', '/panitia/events'],
   authorizeRoles('panitia', 'admin'),
   createEventValidation,
   validate,
@@ -39,13 +38,13 @@ router.post(
 );
 
 router.put(
-  '/events/:id',
+  ['/events/:id', '/panitia/events/:id'],
   authorizeRoles('panitia', 'admin'),
   eventController.updateEvent
 );
 
 router.delete(
-  '/events/:id',
+  ['/events/:id', '/panitia/events/:id'],
   authorizeRoles('panitia', 'admin'),
   eventController.deleteEvent
 );
@@ -59,8 +58,8 @@ router.patch(
 
 // Submit Event untuk Verifikasi Admin (Khusus Panitia)
 router.patch(
-  '/events/:id/submit',
-  authorizeRoles('panitia'),
+  ['/events/:id/submit', '/panitia/events/:id/submit'],
+  authorizeRoles('panitia', 'admin'),
   eventController.submitEventForVerification
 );
 
