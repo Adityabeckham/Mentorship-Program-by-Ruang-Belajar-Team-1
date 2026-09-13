@@ -14,7 +14,6 @@ const eventSchema = yup.object().shape({
   date: yup.date().typeError('Tanggal tidak valid.').required('Tanggal wajib diisi.'),
   time: yup.string().required('Waktu wajib diisi.'),
   desc: yup.string().required('Deskripsi singkat acara wajib diisi.'),
-  bannerImage: yup.string().url('URL banner tidak valid.').nullable().transform((value) => value || null),
 });
 
 const formatEventDate = (eventDate) => {
@@ -45,7 +44,6 @@ const PanitiaDashboard = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [desc, setDesc] = useState('');
-  const [bannerImage, setBannerImage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -86,7 +84,6 @@ const PanitiaDashboard = () => {
     setDate('');
     setTime('');
     setDesc('');
-    setBannerImage('');
     setFieldErrors({});
     setEditingEventId(null);
   }, []);
@@ -107,7 +104,7 @@ const PanitiaDashboard = () => {
 
     try {
       await eventSchema.validate(
-        { title, category, speaker, quota, location, date, time, desc, bannerImage },
+        { title, category, speaker, quota, location, date, time, desc },
         { abortEarly: false }
       );
     } catch (err) {
@@ -130,7 +127,6 @@ const PanitiaDashboard = () => {
       quota: Number(quota),
       category,
       speaker: DOMPurify.sanitize(speaker),
-      banner_image: DOMPurify.sanitize(bannerImage),
     };
 
     try {
@@ -146,7 +142,7 @@ const PanitiaDashboard = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || 'Event gagal disimpan. Coba lagi.');
     }
-  }, [title, category, speaker, quota, location, date, time, desc, bannerImage, editingEventId, closeForm]);
+  }, [title, category, speaker, quota, location, date, time, desc, editingEventId, closeForm]);
 
   const handleEditEvent = useCallback((event) => {
     setEditingEventId(event.id);
@@ -156,7 +152,6 @@ const PanitiaDashboard = () => {
     setQuota(String(event.quota || 100));
     setLocation(event.location || '');
     setDesc(event.description || event.desc || '');
-    setBannerImage(event.banner_image || '');
     const eventDate = new Date(event.event_date || event.date);
     if (!Number.isNaN(eventDate.getTime())) {
       const year = eventDate.getFullYear();
@@ -449,17 +444,6 @@ const PanitiaDashboard = () => {
                 {fieldErrors.location && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.location}</div>}
               </div>
 
-              <div className="field">
-                <label htmlFor="event-banner">Banner Image URL</label>
-                <input
-                  id="event-banner"
-                  type="url"
-                  value={bannerImage}
-                  onChange={(e) => setBannerImage(e.target.value)}
-                  placeholder="https://contoh.com/banner-event.jpg"
-                />
-                {fieldErrors.bannerImage && <div style={{ color: '#b5342a', fontSize: '12px', marginTop: '4px' }}>❌ {fieldErrors.bannerImage}</div>}
-              </div>
 
               <div className="field">
                 <label htmlFor="event-description">Deskripsi Singkat Acara</label>
