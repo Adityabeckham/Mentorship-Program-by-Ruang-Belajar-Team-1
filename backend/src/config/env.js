@@ -15,7 +15,10 @@ const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // Supabase Database & Service Credentials
 const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim().replace(/"/g, '').replace(/\+$/, '').replace(/\.cw$/, '.co') : undefined;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const sanitizeKey = (val) => (val ? val.trim().replace(/^["']|["']$/g, '') : undefined);
+const SUPABASE_SERVICE_ROLE_KEY = sanitizeKey(process.env.SUPABASE_SERVICE_ROLE_KEY);
+const SUPABASE_ANON_KEY = sanitizeKey(process.env.SUPABASE_ANON_KEY);
+const SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY || sanitizeKey(process.env.SUPABASE_KEY);
 const DATABASE_URL = process.env.DATABASE_URL;
 const DIRECT_URL = process.env.DIRECT_URL;
 
@@ -44,6 +47,8 @@ module.exports = {
   JWT_REFRESH_EXPIRES_IN,
   SUPABASE_URL,
   SUPABASE_KEY,
+  SUPABASE_SERVICE_ROLE_KEY,
+  SUPABASE_ANON_KEY,
   DATABASE_URL,
   DIRECT_URL,
   FRONTEND_URL,

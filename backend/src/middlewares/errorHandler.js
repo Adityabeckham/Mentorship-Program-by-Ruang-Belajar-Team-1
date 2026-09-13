@@ -4,7 +4,9 @@ const errorHandler = (err, req, res, next) => {
   let message = err.message || 'Internal Server Error';
 
   // 2. TANGKAP ERROR NETWORK / FETCH / DATABASE POSTGRES & SUPABASE
-  if (err.name === 'TypeError' && err.message && err.message.includes('fetch failed')) {
+  if (err.message && err.message.includes('Invalid API key')) {
+    message = 'Supabase API Key tidak valid. Silakan salin ANON_KEY / SERVICE_ROLE_KEY resmi dari Supabase Dashboard (Settings -> API) ke Environment Variables Vercel.';
+  } else if (err.name === 'TypeError' && err.message && err.message.includes('fetch failed')) {
     message = 'Koneksi ke Supabase gagal (fetch failed). Pastikan SUPABASE_URL dan SUPABASE_KEY / SUPABASE_SERVICE_ROLE_KEY di Environment Variables Vercel sudah benar dan aktif.';
   }
 
