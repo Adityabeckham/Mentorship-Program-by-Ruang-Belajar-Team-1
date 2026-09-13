@@ -43,7 +43,7 @@ app.use(compression());
 // 3. Security Headers (Helmet)
 app.use(helmet());
 
-// 4. Optimized O(1) CORS Whitelist Set Lookup (Environment-Driven, Zero Hardcoded URLs)
+// 4. Optimized O(1) CORS Whitelist Set Lookup (Environment-Driven, Fail-Closed Security)
 const rawOrigins = [
   env.FRONTEND_URL,
   env.CORS_ORIGIN,
@@ -69,11 +69,8 @@ app.use(
 
       const formattedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
 
-      if (
-        allowedOriginsSet.size === 0 ||
-        allowedOriginsSet.has('*') ||
-        allowedOriginsSet.has(formattedOrigin)
-      ) {
+      // Fail Closed: Strict origin check (never allow all origins if set is empty)
+      if (allowedOriginsSet.has('*') || allowedOriginsSet.has(formattedOrigin)) {
         return callback(null, true);
       }
 
