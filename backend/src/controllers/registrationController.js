@@ -1,6 +1,16 @@
 const supabase = require('../config/supabase');
 const AppError = require('../utils/appError');
 
+const isColumnError = (err) =>
+  err &&
+  (err.code === '42703' ||
+    err.code === 'PGRST204' ||
+    (err.message &&
+      (err.message.includes('does not exist') ||
+        err.message.includes('Could not find') ||
+        err.message.includes('column of') ||
+        err.message.includes('schema cache'))));
+
 // 1. POST /events/:id/register
 const registerToEvent = async (req, res, next) => {
   try {
@@ -44,31 +54,53 @@ const registerToEvent = async (req, res, next) => {
     const ticketCode = `TKT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${ticketCode}`;
 
-    // 3. Insert ke tabel Supabase registrations
-    const query = supabase
+    // 3. Insert ke tabel Supabase registrations (dengan fallback jika kolom ticket_code tidak ada)
+    const fullPayload = {
+      event_id: eventId,
+      user_id: userId,
+      ticket_code: ticketCode,
+      qr_code_url: qrCodeUrl,
+      status: 'registered',
+    };
+
+    let { data: newRegistration, error: insertError } = await supabase
       .from('registrations')
-      .insert([
-        {
-          event_id: eventId,
-          user_id: userId,
-          ticket_code: ticketCode,
-          qr_code_url: qrCodeUrl,
-          status: 'registered',
-        },
-      ])
-      .select('*');
+      .insert([fullPayload])
+      .select('*')
+      .single();
 
-    const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
+    if (insertError && isColumnError(insertError)) {
+      const corePayload = {
+        event_id: eventId,
+        user_id: userId,
+        status: 'registered',
+      };
 
-    if (!resQuery || resQuery.error || !resQuery.data) {
+      const resFallback = await supabase
+        .from('registrations')
+        .insert([corePayload])
+        .select('*')
+        .single();
+
+      newRegistration = resFallback.data;
+      insertError = resFallback.error;
+    }
+
+    if (insertError || !newRegistration) {
       return next(new AppError('Gagal mendaftar ke event.', 500));
     }
+
+    const responseData = {
+      ...newRegistration,
+      ticket_code: newRegistration.ticket_code || ticketCode,
+      qr_code_url: newRegistration.qr_code_url || qrCodeUrl,
+    };
 
     return res.status(201).json({
       status: 'success',
       statusCode: 201,
       message: 'Berhasil mendaftar ke event.',
-      data: resQuery.data,
+      data: responseData,
     });
   } catch (err) {
     next(err);
@@ -80,7 +112,7 @@ const getMyRegistrations = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const { data: registrations, error } = await supabase
+    let { data: registrations, error } = await supabase
       .from('registrations')
       .select(`
         id,
@@ -101,18 +133,47 @@ const getMyRegistrations = async (req, res, next) => {
       .eq('user_id', userId)
       .order('registered_at', { ascending: false });
 
+    if (error && isColumnError(error)) {
+      const resFallback = await supabase
+        .from('registrations')
+        .select(`
+          id,
+          status,
+          registered_at,
+          events (
+            id,
+            title,
+            event_date,
+            location
+          ),
+          attendance (
+            is_present
+          )
+        `)
+        .eq('user_id', userId)
+        .order('registered_at', { ascending: false });
+
+      registrations = resFallback.data;
+      error = resFallback.error;
+    }
+
     if (error) throw error;
 
-    const formattedData = (registrations || []).map((item) => ({
-      registration_id: item.id,
-      event_title: item.events?.title || '-',
-      event_date: item.events?.event_date || item.registered_at,
-      location: item.events?.location || '-',
-      status: item.status,
-      is_present: Array.isArray(item.attendance) ? item.attendance[0]?.is_present || false : item.attendance?.is_present || false,
-      ticket_code: item.ticket_code,
-      qr_code_url: item.qr_code_url,
-    }));
+    const formattedData = (registrations || []).map((item) => {
+      const generatedTicketCode = item.ticket_code || `EHK-${(item.id || '').substring(0, 8).toUpperCase()}`;
+      return {
+        registration_id: item.id,
+        event_title: item.events?.title || '-',
+        event_date: item.events?.event_date || item.registered_at,
+        location: item.events?.location || '-',
+        status: item.status,
+        is_present: Array.isArray(item.attendance)
+          ? item.attendance[0]?.is_present || false
+          : item.attendance?.is_present || false,
+        ticket_code: generatedTicketCode,
+        qr_code_url: item.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${generatedTicketCode}`,
+      };
+    });
 
     return res.status(200).json({
       status: 'success',

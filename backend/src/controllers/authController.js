@@ -18,7 +18,7 @@ exports.register = async (req, res, next) => {
       return next(new AppError('Nama, email, dan password wajib diisi', 400));
     }
 
-    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return next(new AppError('Format email tidak valid', 400));
     }
