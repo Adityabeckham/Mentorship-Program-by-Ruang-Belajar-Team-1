@@ -90,7 +90,14 @@ exports.login = async (req, res, next) => {
       return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Verify password: Supports bcrypt hashes ($2a$/$2b$) AND manual SQL plain text inserts
+    let isPasswordValid = false;
+    if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'))) {
+      isPasswordValid = await bcrypt.compare(password, user.password);
+    } else {
+      isPasswordValid = (password === user.password);
+    }
+
     if (!isPasswordValid) {
       return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
     }
