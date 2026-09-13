@@ -11,6 +11,8 @@ exports.getManagedEvents = async (req, res, next) => {
     const { id: userId, role } = req.user;
 
     let events = [];
+    let dbSuccess = false;
+
     try {
       let query = supabase
         .from('events')
@@ -22,20 +24,25 @@ exports.getManagedEvents = async (req, res, next) => {
         query = query.eq('created_by', userId);
       }
 
-      const res = await query;
-      if (res.data) events = res.data;
+      const resQuery = await query;
+      if (!resQuery.error && Array.isArray(resQuery.data)) {
+        events = resQuery.data;
+        dbSuccess = true;
+      }
     } catch (dbErr) {
       console.warn('⚠️ Supabase getManagedEvents fallback engaged.');
     }
 
-    const storeEvents = showcaseStore.events.filter((e) => role === 'admin' || e.created_by === userId);
-    const combined = [...events, ...storeEvents.filter((se) => !events.some((e) => e.id === se.id))];
+    if (!dbSuccess) {
+      const storeEvents = showcaseStore.events.filter((e) => role === 'admin' || e.created_by === userId);
+      events = storeEvents;
+    }
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: combined.length,
-      data: combined,
+      total: events.length,
+      data: events,
     });
   } catch (err) {
     next(err);
@@ -94,7 +101,9 @@ exports.getPublicEvents = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const search = req.query.search || '';
 
-    let dbEvents = [];
+    let events = [];
+    let dbSuccess = false;
+
     try {
       const offset = (page - 1) * limit;
       let query = supabase
@@ -109,28 +118,27 @@ exports.getPublicEvents = async (req, res, next) => {
       }
 
       query = query.range(offset, offset + limit - 1);
-      const res = await query;
-      if (res.data) dbEvents = res.data;
+      const resQuery = await query;
+      if (!resQuery.error && Array.isArray(resQuery.data)) {
+        events = resQuery.data;
+        dbSuccess = true;
+      }
     } catch (dbErr) {
       console.warn('⚠️ Supabase events query fallback engaged for showcase demo.');
     }
 
-    const storePublished = showcaseStore.events.filter((e) => e.status === 'published');
-    let allEvents = [...dbEvents, ...storePublished.filter((se) => !dbEvents.some((e) => e.id === se.id))];
-
-    if (search) {
-      const lowerSearch = search.toLowerCase();
-      allEvents = allEvents.filter((e) => e.title?.toLowerCase().includes(lowerSearch) || e.category?.toLowerCase().includes(lowerSearch) || e.location?.toLowerCase().includes(lowerSearch));
+    if (!dbSuccess) {
+      events = showcaseStore.events.filter((e) => e.status === 'published');
     }
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: allEvents.length,
+      total: events.length,
       page,
       limit,
-      totalPages: Math.ceil(allEvents.length / limit) || 1,
-      data: allEvents,
+      totalPages: Math.ceil(events.length / limit) || 1,
+      data: events,
     });
   } catch (err) {
     next(err);
@@ -222,9 +230,8 @@ exports.createEvent = async (req, res, next) => {
         created_by: panitiaId,
         created_at: new Date().toISOString(),
       };
+      showcaseStore.addEvent(newEvent);
     }
-
-    showcaseStore.addEvent(newEvent);
 
     res.status(201).json({
       status: 'success',
@@ -269,8 +276,8 @@ exports.updateEvent = async (req, res, next) => {
         .is('deleted_at', null)
         .select();
 
-      const res = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
-      if (res && res.data) updatedEvent = res.data;
+      const resQuery = typeof query.maybeSingle === 'function' ? await query.maybeSingle() : await query.single();
+      if (resQuery && resQuery.data) updatedEvent = resQuery.data;
     } catch (dbErr) {}
 
     if (!updatedEvent) {
@@ -346,8 +353,10 @@ exports.getEventParticipants = async (req, res, next) => {
     const { id: userId, role } = req.user;
 
     let dbParticipants = [];
+    let dbSuccess = false;
+
     try {
-      const { data: participants } = await supabase
+      const { data: participants, error } = await supabase
         .from('registrations')
         .select(`
           id,
@@ -359,19 +368,13 @@ exports.getEventParticipants = async (req, res, next) => {
         .eq('event_id', eventId)
         .order('registered_at', { ascending: true });
 
-      if (participants) dbParticipants = participants;
+      if (!error && Array.isArray(participants)) {
+        dbParticipants = participants;
+        dbSuccess = true;
+      }
     } catch (err) {}
 
-    const storeRegs = showcaseStore.registrations.filter((r) => r.event_id === eventId);
-    const storeParticipants = storeRegs.map((r) => ({
-      registration_id: r.id,
-      student_name: 'Mahasiswa Tester',
-      student_email: 'mahasiswa@kampus.ac.id',
-      registered_at: r.registered_at,
-      is_present: r.is_present || false,
-    }));
-
-    const normalizedDb = dbParticipants.map((participant) => ({
+    let normalized = dbParticipants.map((participant) => ({
       registration_id: participant.id,
       student_name: participant.users?.nama || '-',
       student_email: participant.users?.email || '-',
@@ -381,13 +384,22 @@ exports.getEventParticipants = async (req, res, next) => {
         : participant.attendance?.is_present === true,
     }));
 
-    const combined = [...normalizedDb, ...storeParticipants.filter((sp) => !normalizedDb.some((p) => p.registration_id === sp.registration_id))];
+    if (!dbSuccess) {
+      const storeRegs = showcaseStore.registrations.filter((r) => r.event_id === eventId);
+      normalized = storeRegs.map((r) => ({
+        registration_id: r.id,
+        student_name: 'Mahasiswa Tester',
+        student_email: 'mahasiswa@kampus.ac.id',
+        registered_at: r.registered_at,
+        is_present: r.is_present || false,
+      }));
+    }
 
     res.status(200).json({
       status: 'success',
       statusCode: 200,
-      total: combined.length,
-      data: combined,
+      total: normalized.length,
+      data: normalized,
     });
   } catch (err) {
     next(err);
@@ -446,6 +458,8 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
     const targetStatus = status || 'pending_verification';
 
     let dbEvents = [];
+    let dbSuccess = false;
+
     try {
       let query = supabase
         .from('events')
@@ -466,12 +480,17 @@ exports.getPendingEventsForAdmin = async (req, res, next) => {
         .eq('status', targetStatus)
         .order('created_at', { ascending: false });
 
-      const res = await query;
-      if (res.data) dbEvents = res.data;
+      const resQuery = await query;
+      if (!resQuery.error && Array.isArray(resQuery.data)) {
+        dbEvents = resQuery.data;
+        dbSuccess = true;
+      }
     } catch (err) {}
 
-    const storePending = showcaseStore.events.filter((e) => e.status === targetStatus);
-    const combined = [...dbEvents, ...storePending.filter((se) => !dbEvents.some((e) => e.id === se.id))];
+    let combined = dbEvents;
+    if (!dbSuccess) {
+      combined = showcaseStore.events.filter((e) => e.status === targetStatus);
+    }
 
     res.status(200).json({
       status: 'success',
@@ -502,8 +521,8 @@ exports.verifyEventByAdmin = async (req, res, next) => {
         .eq('id', id)
         .is('deleted_at', null);
 
-      const res = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
-      if (res && res.data) event = res.data;
+      const resQuery = typeof selectQuery.maybeSingle === 'function' ? await selectQuery.maybeSingle() : await selectQuery.single();
+      if (resQuery && resQuery.data) event = resQuery.data;
     } catch (dbErr) {}
 
     if (!event) {

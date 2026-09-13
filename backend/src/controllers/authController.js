@@ -86,37 +86,37 @@ exports.login = async (req, res, next) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Showcase Demo Fallback Account Bypass (Ensures presentation demo never fails)
-    let user = demoAccounts[normalizedEmail];
+    let user = null;
+    let dbSuccess = false;
 
-    if (!user) {
-      try {
-        const { data: dbUser, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', normalizedEmail)
-          .maybeSingle();
+    // 1. STRICT DATABASE PRIMACY: Query Supabase DB First
+    try {
+      const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
 
-        if (!error && dbUser) {
+      if (!error) {
+        dbSuccess = true;
+        if (dbUser) {
           const isPasswordValid = await bcrypt.compare(password, dbUser.password);
           if (isPasswordValid) {
             user = dbUser;
+          } else {
+            return next(new AppError('Kredensial tidak valid (email/password salah)', 401));
           }
         }
-      } catch (dbErr) {
-        console.warn('⚠️ Supabase connection fallback engaged for showcase demo.');
       }
+    } catch (dbErr) {
+      console.warn('⚠️ Supabase connection fallback engaged for login.');
     }
 
-    // Auto-grant demo fallback if email matches @kampus.ac.id or password is Password123!
-    if (!user && (normalizedEmail.endsWith('@kampus.ac.id') || password === 'Password123!')) {
-      const derivedRole = normalizedEmail.includes('admin') ? 'admin' : (normalizedEmail.includes('panitia') ? 'panitia' : 'mahasiswa');
-      user = {
-        id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'c1b2c3d4-e5f6-4000-8000-000000000099',
-        nama: normalizedEmail.split('@')[0].toUpperCase(),
-        email: normalizedEmail,
-        role: derivedRole,
-      };
+    // 2. Demo Fallback ONLY if user does not exist in DB AND email is preset demo email
+    if (!user && !dbSuccess && demoAccounts[normalizedEmail]) {
+      user = demoAccounts[normalizedEmail];
+    } else if (!user && demoAccounts[normalizedEmail] && password === 'Password123!') {
+      user = demoAccounts[normalizedEmail];
     }
 
     if (!user) {
