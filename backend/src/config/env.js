@@ -14,7 +14,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // Supabase Database & Service Credentials
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim().replace(/"/g, '').replace(/\+$/, '').replace(/\.cw$/, '.co') : undefined;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const DATABASE_URL = process.env.DATABASE_URL;
 const DIRECT_URL = process.env.DIRECT_URL;
